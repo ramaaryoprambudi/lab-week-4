@@ -5,13 +5,16 @@ const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 
+const isVercel = process.env.VERCEL === '1' || !!process.env.VERCEL;
+
 // =============================================
 // VULNERABLE VERSION - Tidak ada validasi
 // =============================================
 const vulnerableStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // ⚠️ VULNERABLE: Simpan langsung ke public/uploads (bisa diakses via URL)
-    cb(null, path.join(__dirname, '..', 'public', 'uploads'));
+    const dest = isVercel ? '/tmp/uploads' : path.join(__dirname, '..', 'public', 'uploads');
+    if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+    cb(null, dest);
   },
   filename: (req, file, cb) => {
     // ⚠️ VULNERABLE: Pakai nama asli file dari user
@@ -31,8 +34,9 @@ const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1 MB
 
 const fixedStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // ✅ FIXED: Simpan di folder terpisah, tidak bisa diakses langsung via URL
-    cb(null, path.join(__dirname, '..', 'data', 'secure-uploads'));
+    const dest = isVercel ? '/tmp/secure-uploads' : path.join(__dirname, '..', 'data', 'secure-uploads');
+    if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+    cb(null, dest);
   },
   filename: (req, file, cb) => {
     // ✅ FIXED: Rename dengan UUID, tidak memakai nama asli
@@ -76,7 +80,8 @@ let fixedUploadedFilesLog = [];
 // GET /lab/file-upload
 router.get('/', (req, res) => {
   // Baca file dari folder uploads
-  const uploadsDir = path.join(__dirname, '..', 'public', 'uploads');
+  const uploadsDir = isVercel ? '/tmp/uploads' : path.join(__dirname, '..', 'public', 'uploads');
+  if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
   let files = [];
   if (fs.existsSync(uploadsDir)) {
     files = fs.readdirSync(uploadsDir).map(name => ({
@@ -98,7 +103,8 @@ router.get('/', (req, res) => {
 // POST /lab/file-upload/upload
 router.post('/upload', (req, res) => {
   vulnerableUpload.single('file')(req, res, (err) => {
-    const uploadsDir = path.join(__dirname, '..', 'public', 'uploads');
+    const uploadsDir = isVercel ? '/tmp/uploads' : path.join(__dirname, '..', 'public', 'uploads');
+    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
     let files = [];
     if (fs.existsSync(uploadsDir)) {
       files = fs.readdirSync(uploadsDir).map(name => ({

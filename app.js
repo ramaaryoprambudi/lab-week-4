@@ -47,12 +47,19 @@ app.use((req, res, next) => {
   next();
 });
 
+const isVercel = process.env.VERCEL === '1' || !!process.env.VERCEL;
+
 // Pastikan folder uploads ada
-const uploadsDir = path.join(__dirname, 'public', 'uploads');
+const uploadsDir = isVercel ? '/tmp/uploads' : path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
-const fixedUploadsDir = path.join(__dirname, 'data', 'secure-uploads');
+const fixedUploadsDir = isVercel ? '/tmp/secure-uploads' : path.join(__dirname, 'data', 'secure-uploads');
 if (!fs.existsSync(fixedUploadsDir)) fs.mkdirSync(fixedUploadsDir, { recursive: true });
+
+if (isVercel) {
+  // Sajikan folder uploads statis di Vercel dari /tmp/uploads
+  app.use('/uploads', express.static('/tmp/uploads'));
+}
 
 // Routes
 const fileUploadRoutes          = require('./routes/fileUpload');
@@ -122,47 +129,51 @@ app.use((err, req, res, next) => {
   });
 });
 
-const server = app.listen(PORT, HOST, () => {
-  // Tampilkan IP lokal
-  const { networkInterfaces } = require('os');
-  const nets = networkInterfaces();
-  let localIp = 'localhost';
-  for (const name of Object.keys(nets)) {
-    for (const net of nets[name]) {
-      if (net.family === 'IPv4' && !net.internal) {
-        localIp = net.address;
-        break;
+if (!isVercel) {
+  const server = app.listen(PORT, HOST, () => {
+    // Tampilkan IP lokal
+    const { networkInterfaces } = require('os');
+    const nets = networkInterfaces();
+    let localIp = 'localhost';
+    for (const name of Object.keys(nets)) {
+      for (const net of nets[name]) {
+        if (net.family === 'IPv4' && !net.internal) {
+          localIp = net.address;
+          break;
+        }
       }
     }
-  }
 
-  console.log(`\n🔐 Cyber Security LAB - Week 4`);
-  console.log(`🚀 Server berjalan di:`);
-  console.log(`   → http://localhost:${PORT}        (local)`);
-  console.log(`   → http://${localIp}:${PORT}  (network – untuk Burp proxy)`);
-  console.log(`\n📋 Daftar Lab:`);
-  console.log(`   📁 File Upload       → http://localhost:${PORT}/lab/file-upload`);
-  console.log(`   🔍 Info Disclosure   → http://localhost:${PORT}/lab/information-disclosure`);
-  console.log(`   ⚡ Race Condition    → http://localhost:${PORT}/lab/race-condition`);
-  console.log(`   🕵️  Recon Lab         → http://localhost:${PORT}/lab/recon`);
-  console.log(`\n🔧 Tools:`);
-  console.log(`   🤖 robots.txt        → http://localhost:${PORT}/robots.txt`);
-  console.log(`   🔑 Hidden Admin      → http://localhost:${PORT}/admin`);
-  console.log(`   🌐 Set Burp proxy ke → http://${localIp}:${PORT}`);
-  console.log(`\n⚠️  Hanya untuk edukasi lokal!\n`);
-});
+    console.log(`\n🔐 Cyber Security LAB - Week 4`);
+    console.log(`🚀 Server berjalan di:`);
+    console.log(`   → http://localhost:${PORT}        (local)`);
+    console.log(`   → http://${localIp}:${PORT}  (network – untuk Burp proxy)`);
+    console.log(`\n📋 Daftar Lab:`);
+    console.log(`   📁 File Upload       → http://localhost:${PORT}/lab/file-upload`);
+    console.log(`   🔍 Info Disclosure   → http://localhost:${PORT}/lab/information-disclosure`);
+    console.log(`   ⚡ Race Condition    → http://localhost:${PORT}/lab/race-condition`);
+    console.log(`   🕵️  Recon Lab         → http://localhost:${PORT}/lab/recon`);
+    console.log(`\n🔧 Tools:`);
+    console.log(`   🤖 robots.txt        → http://localhost:${PORT}/robots.txt`);
+    console.log(`   🔑 Hidden Admin      → http://localhost:${PORT}/admin`);
+    console.log(`   🌐 Set Burp proxy ke → http://${localIp}:${PORT}`);
+    console.log(`\n⚠️  Hanya untuk edukasi lokal!\n`);
+  });
 
-// ✅ Handle error EADDRINUSE dengan pesan yang jelas
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`\n❌ ERROR: Port ${PORT} sudah digunakan oleh proses lain!\n`);
-    console.error(`   Jalankan perintah ini untuk menghentikan proses lama:\n`);
-    console.error(`   lsof -ti:${PORT} | xargs kill -9\n`);
-    console.error(`   Lalu jalankan ulang: npm run dev\n`);
-    process.exit(1);
-  } else {
-    console.error('[SERVER ERROR]', err);
-    process.exit(1);
-  }
-});
+  // ✅ Handle error EADDRINUSE dengan pesan yang jelas
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`\n❌ ERROR: Port ${PORT} sudah digunakan oleh proses lain!\n`);
+      console.error(`   Jalankan perintah ini untuk menghentikan proses lama:\n`);
+      console.error(`   lsof -ti:${PORT} | xargs kill -9\n`);
+      console.error(`   Lalu jalankan ulang: npm run dev\n`);
+      process.exit(1);
+    } else {
+      console.error('[SERVER ERROR]', err);
+      process.exit(1);
+    }
+  });
+}
+
+module.exports = app;
 

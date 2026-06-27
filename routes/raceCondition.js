@@ -9,7 +9,8 @@ const fs = require('fs');
 // =============================================
 const initSqlJs = require('sql.js');
 
-const dataDir = path.join(__dirname, '..', 'data');
+const isVercel = process.env.VERCEL === '1' || !!process.env.VERCEL;
+const dataDir = isVercel ? '/tmp' : path.join(__dirname, '..', 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
 const DB_PATH = path.join(dataDir, 'database.sqlite');
