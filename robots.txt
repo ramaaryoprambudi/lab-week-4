@@ -1,0 +1,17 @@
+# robots.txt – CyberLAB Week 4 (PHP Native)
+# ⚠️ WARNING: File ini membocorkan path internal kepada mesin pencari
+# Attacker sering membaca robots.txt untuk reconnaissance!
+
+User-agent: *
+Disallow: /admin/
+Disallow: /admin/dashboard.php
+Disallow: /admin/users.php
+Disallow: /config.json
+Disallow: /api/keys.php
+Disallow: /api/users.php
+Disallow: /api/debug.php
+Disallow: /.env
+Disallow: /.git
+Disallow: /data/
+
+Allow: /

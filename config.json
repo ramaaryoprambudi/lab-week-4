@@ -1,0 +1,21 @@
+{
+  "_note": "⚠️ File konfigurasi terekspos (SIMULASI RECON)",
+  "app": {
+    "name": "CyberLAB",
+    "version": "1.0.0",
+    "environment": "development",
+    "debug": true,
+    "adminPath": "/admin",
+    "uploadPath": "/public/uploads"
+  },
+  "database": {
+    "type": "json",
+    "path": "./data/database.json"
+  },
+  "auth": {
+    "sessionSecret": "session_secret_DUMMY_abc",
+    "jwtSecret": "jwt_DUMMY_secret_key",
+    "adminUsername": "admin",
+    "adminPassword": "Admin@1234_DUMMY"
+  }
+}
