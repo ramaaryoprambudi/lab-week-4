@@ -1,4 +1,5 @@
 <?php
+include_once('config.php');
 $title = "Race Condition (Fixed)";
 
 // Setup database
@@ -149,8 +150,8 @@ include('header.php');
 
   <!-- NAVIGATION SUB-LABS -->
   <div style="display:flex; gap:0.5rem; margin-bottom:2rem; flex-wrap:wrap;">
-    <a href="/race-condition.php" class="btn btn-outline">Level 1: Vulnerable</a>
-    <a href="/race-condition-fixed.php" class="btn btn-fixed" style="border: 2px solid var(--accent-green)">Level 2: Secure Version</a>
+    <a href="<?= $base_url ?>/race-condition.php" class="btn btn-outline">Level 1: Vulnerable</a>
+    <a href="<?= $base_url ?>/race-condition-fixed.php" class="btn btn-fixed btn-fixed-active">Level 2: Secure Version</a>
   </div>
 
   <div class="lab-container">
@@ -204,7 +205,7 @@ include('header.php');
         <div class="fixed-label-inline" style="margin-bottom:1rem;">✅ Endpoint Aman: <code>POST /race-condition-fixed.php?action=redeem</code></div>
 
         <div class="race-buttons">
-          <button class="btn btn-fixed" style="background:var(--accent-green);color:#000;" id="btn-redeem-once" onclick="redeemOnce()">
+          <button class="btn btn-fixed" id="btn-redeem-once" onclick="redeemOnce()">
             🎟️ Redeem Voucher Sekali
           </button>
           <button class="btn btn-race" id="btn-race-attack" onclick="raceAttack()">
@@ -231,8 +232,8 @@ include('header.php');
 <?php include('footer.php'); ?>
 
 <script>
-const ENDPOINT = '/race-condition-fixed.php?action=redeem';
-const RESET_ENDPOINT = '/race-condition-fixed.php?action=reset';
+const ENDPOINT = '<?= $base_url ?>/race-condition-fixed.php?action=redeem';
+const RESET_ENDPOINT = '<?= $base_url ?>/race-condition-fixed.php?action=reset';
 
 function addLog(msg, type = 'info') {
   const log = document.getElementById('race-log');

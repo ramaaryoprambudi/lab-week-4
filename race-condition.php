@@ -1,4 +1,5 @@
 <?php
+include_once('config.php');
 $title = "Race Condition";
 
 // Setup database state menggunakan file JSON di dalam folder data/
@@ -113,6 +114,12 @@ include('header.php');
       <h1>⚡ LAB 3: Race Condition</h1>
       <p>Simulasi eksploitasi voucher sekali pakai dengan mengirim banyak request bersamaan.</p>
     </div>
+  </div>
+
+  <!-- NAVIGATION SUB-LABS -->
+  <div style="display:flex; gap:0.5rem; margin-bottom:2rem; flex-wrap:wrap;">
+    <a href="<?= $base_url ?>/race-condition.php" class="btn btn-vuln btn-vuln-active">Level 1: Vulnerable</a>
+    <a href="<?= $base_url ?>/race-condition-fixed.php" class="btn btn-fixed">Level 2: Secure Version</a>
   </div>
 
   <div class="lab-container">
@@ -241,7 +248,7 @@ include('header.php');
 
     <!-- NAVIGASI -->
     <div class="nav-to-fixed">
-      <a href="/race-condition-fixed.php" class="btn btn-fixed-large" id="btn-goto-fixed-race">
+      <a href="<?= $base_url ?>/race-condition-fixed.php" class="btn btn-fixed-large" id="btn-goto-fixed-race">
         ✅ Lihat Versi Aman (Fixed) →
       </a>
     </div>
@@ -252,8 +259,8 @@ include('header.php');
 <?php include('footer.php'); ?>
 
 <script>
-const ENDPOINT = '/race-condition.php?action=redeem';
-const RESET_ENDPOINT = '/race-condition.php?action=reset';
+const ENDPOINT = '<?= $base_url ?>/race-condition.php?action=redeem';
+const RESET_ENDPOINT = '<?= $base_url ?>/race-condition.php?action=reset';
 
 function addLog(msg, type = 'info') {
   const log = document.getElementById('race-log');

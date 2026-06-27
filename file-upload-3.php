@@ -1,4 +1,5 @@
 <?php
+include_once('config.php');
 $title = "Lab 3: Bypass Ekstensi Gambar";
 
 $upload_dir = __DIR__ . '/public/uploads/';
@@ -34,6 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
         } else {
             // Lolos pemeriksaan MIME yang dikirim browser, simpan berkas
             if (move_uploaded_file($file['tmp_name'], $target_path)) {
+                chmod($target_path, 0644); // Pastikan berkas dapat dibaca oleh web server
                 $message = "✅ File berhasil diunggah (MIME type terverifikasi): " . htmlspecialchars($filename);
             } else {
                 $error = "Gagal memindahkan file ke direktori tujuan.";
@@ -51,7 +53,7 @@ if (file_exists($upload_dir) && $handle = opendir($upload_dir)) {
         if ($entry != "." && $entry != ".." && $entry != "lab-php.php" && !is_dir($upload_dir . $entry)) {
             $uploaded_files[] = [
                 'name' => $entry,
-                'url' => '/public/uploads/' . $entry,
+                'url' => $base_url . '/public/uploads/' . $entry,
                 'size' => filesize($upload_dir . $entry)
             ];
         }
@@ -75,10 +77,10 @@ include('header.php');
 
   <!-- NAVIGATION SUB-LABS -->
   <div style="display:flex; gap:0.5rem; margin-bottom:2rem; flex-wrap:wrap;">
-    <a href="/file-upload-1.php" class="btn btn-outline">Level 1: No Validation</a>
-    <a href="/file-upload-2.php" class="btn btn-outline">Level 2: Blacklist Filter</a>
-    <a href="/file-upload-3.php" class="btn btn-vuln" style="border: 2px solid var(--accent-red)">Level 3: Extension Whitelist</a>
-    <a href="/file-upload-fixed.php" class="btn btn-fixed">Level 4: Secure Version</a>
+    <a href="<?= $base_url ?>/file-upload-1.php" class="btn btn-outline">Level 1: No Validation</a>
+    <a href="<?= $base_url ?>/file-upload-2.php" class="btn btn-outline">Level 2: Blacklist Filter</a>
+    <a href="<?= $base_url ?>/file-upload-3.php" class="btn btn-vuln btn-vuln-active">Level 3: Extension Whitelist</a>
+    <a href="<?= $base_url ?>/file-upload-fixed.php" class="btn btn-fixed">Level 4: Secure Version</a>
   </div>
 
   <div class="lab-container">

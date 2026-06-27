@@ -1,6 +1,9 @@
 <?php
+include_once('config.php');
 $title = "Recon & Hidden Endpoints";
 include('header.php');
+
+$local_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $base_url;
 
 // Tentukan IP server dinamis
 $localIp = 'localhost';
@@ -58,7 +61,7 @@ pip install -r requirements.txt</code></pre>
         <div class="code-block">
           <div class="code-label">Perintah dirsearch – Basic Scan</div>
           <pre><code># Scan basic terhadap server lab
-dirsearch -u http://localhost:3000 -e php,html,js,json,txt,sql,zip,env,git,bak</code></pre>
+dirsearch -u <?= $local_url ?> -e php,html,js,json,txt,sql,zip,env,git,bak</code></pre>
         </div>
 
         <h4 style="margin:1.5rem 0 1rem;color:#c9d1d9;">🎯 Endpoint yang Seharusnya Ditemukan</h4>
@@ -81,7 +84,7 @@ dirsearch -u http://localhost:3000 -e php,html,js,json,txt,sql,zip,env,git,bak</
           ?>
           <div class="discovery-item">
             <div class="discovery-path">
-              <a href="<?php echo $ep['path']; ?>" target="_blank" class="discovery-link"><?php echo $ep['path']; ?></a>
+              <a href="<?php echo $base_url . $ep['path']; ?>" target="_blank" class="discovery-link"><?php echo $ep['path']; ?></a>
             </div>
             <div class="discovery-meta">
               <span class="disc-status">HTTP <?php echo $ep['status']; ?></span>

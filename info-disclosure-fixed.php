@@ -1,4 +1,5 @@
 <?php
+include_once('config.php');
 $title = "Information Disclosure (Fixed)";
 
 $sanitized_profile = [
@@ -44,19 +45,22 @@ include('header.php');
       <div class="vuln-box">
         <div class="fixed-label-inline" style="margin-bottom:1rem;">✅ Endpoint Aman Terkonfigurasi:</div>
         
-        <div class="disclosure-buttons">
-          <button onclick="getSanitizedProfile()" class="btn btn-fixed" style="background:var(--accent-green);color:#000;">👤 Sanitized Profile (API)</button>
-          <button onclick="getClosedDebug()" class="btn btn-fixed" style="background:var(--accent-green);color:#000;">⚙️ Debug Endpoint (Closed)</button>
-          <button onclick="getGenericError()" class="btn btn-fixed" style="background:var(--accent-green);color:#000;">💥 Generic Error Message</button>
+        <div class="disclosure-buttons" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+          <button onclick="getSanitizedProfile()" class="btn btn-fixed">👤 Sanitized Profile (API)</button>
+          <button onclick="getClosedDebug()" class="btn btn-fixed">⚙️ Debug Endpoint (Closed)</button>
+          <button onclick="getGenericError()" class="btn btn-fixed">💥 Generic Error Message</button>
         </div>
 
         <!-- OUTPUT BOX -->
-        <div class="json-output-container" id="output-container" style="display:none; margin-top: 1.5rem;">
-          <div class="json-output-header">
-            <span id="output-url">GET /api/endpoint</span>
-            <span class="json-badge font-mono" id="output-status">HTTP 200 OK</span>
+        <div class="response-output" id="output-container" style="display:none; margin-top: 1.5rem;">
+          <div class="response-header">
+            <div>
+              <span id="output-url" style="margin-right: 1rem; font-weight: 600;">GET /api/endpoint</span>
+              <span class="disc-status" id="output-status">HTTP 200 OK</span>
+            </div>
+            <button onclick="document.getElementById('output-container').style.display='none'" class="btn-close-response">✕</button>
           </div>
-          <pre id="json-output" class="json-output"></pre>
+          <pre id="json-output" class="response-pre"></pre>
         </div>
       </div>
     </section>
@@ -107,19 +111,22 @@ function displayOutput(url, status, data, isError = false) {
   outputStatus.textContent = status;
   
   if (isError) {
-    outputStatus.className = 'json-badge font-mono text-red';
-    outputStatus.style.color = '#ff5555';
+    outputStatus.style.color = 'var(--accent-red)';
+    outputStatus.style.background = 'rgba(255, 0, 85, 0.15)';
+    container.style.borderColor = 'rgba(255, 0, 85, 0.4)';
   } else {
-    outputStatus.className = 'json-badge font-mono';
-    outputStatus.style.color = '#00ff00';
+    outputStatus.style.color = 'var(--accent-green)';
+    outputStatus.style.background = 'rgba(0, 255, 102, 0.1)';
+    container.style.borderColor = 'rgba(0, 255, 102, 0.4)';
   }
 
   jsonOutput.innerHTML = data;
   container.style.display = 'block';
+  container.scrollIntoView({ behavior: 'smooth' });
 }
 
 function getSanitizedProfile() {
-  displayOutput('GET /api/profile.php', 'HTTP 200 OK', JSON.stringify(safeProfile, null, 2));
+  displayOutput('GET <?= $base_url ?>/api/profile.php', 'HTTP 200 OK', JSON.stringify(safeProfile, null, 2));
 }
 
 function getClosedDebug() {
@@ -128,7 +135,7 @@ function getClosedDebug() {
     error: "Forbidden",
     message: "Akses ditolak. Debug mode tidak aktif."
   }, null, 2);
-  displayOutput('GET /api/debug.php', 'HTTP 403 Forbidden', errorJson, true);
+  displayOutput('GET <?= $base_url ?>/api/debug.php', 'HTTP 403 Forbidden', errorJson, true);
 }
 
 function getGenericError() {
@@ -137,6 +144,6 @@ function getGenericError() {
     error: "Internal Server Error",
     message: "Terjadi kesalahan internal. Mohon coba lagi beberapa saat lagi."
   }, null, 2);
-  displayOutput('GET /api/profile.php?id=999999999999999999999', 'HTTP 500 Internal Server Error', genericError, true);
+  displayOutput('GET <?= $base_url ?>/api/profile.php?id=999999999999999999999', 'HTTP 500 Internal Server Error', genericError, true);
 }
 </script>

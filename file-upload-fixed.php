@@ -1,4 +1,5 @@
 <?php
+include_once('config.php');
 $title = "File Upload – Versi Aman";
 
 // Simpan file terproteksi di luar folder publik public/
@@ -51,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                 $target_path = $upload_dir . $new_filename;
                 
                 if (move_uploaded_file($file['tmp_name'], $target_path)) {
+                    chmod($target_path, 0644); // Pastikan berkas dapat dibaca oleh web server
                     $meta = [
                         'originalName' => $original_name,
                         'savedAs' => $new_filename,
@@ -89,10 +91,10 @@ include('header.php');
 
   <!-- NAVIGATION SUB-LABS -->
   <div style="display:flex; gap:0.5rem; margin-bottom:2rem; flex-wrap:wrap;">
-    <a href="/file-upload-1.php" class="btn btn-outline">Level 1: No Validation</a>
-    <a href="/file-upload-2.php" class="btn btn-outline">Level 2: Blacklist Filter</a>
-    <a href="/file-upload-3.php" class="btn btn-outline">Level 3: Extension Whitelist</a>
-    <a href="/file-upload-fixed.php" class="btn btn-fixed" style="border: 2px solid var(--accent-green)">Level 4: Secure Version</a>
+    <a href="<?= $base_url ?>/file-upload-1.php" class="btn btn-outline">Level 1: No Validation</a>
+    <a href="<?= $base_url ?>/file-upload-2.php" class="btn btn-outline">Level 2: Blacklist Filter</a>
+    <a href="<?= $base_url ?>/file-upload-3.php" class="btn btn-outline">Level 3: Extension Whitelist</a>
+    <a href="<?= $base_url ?>/file-upload-fixed.php" class="btn btn-fixed btn-fixed-active">Level 4: Secure Version</a>
   </div>
 
   <div class="lab-container">
@@ -133,7 +135,7 @@ include('header.php');
             </div>
             <small class="form-hint text-green">✅ Filter Whitelist Aktif: Hanya menerima JPG, PNG, PDF asli maksimal 1MB.</small>
           </div>
-          <button type="submit" class="btn btn-fixed-submit" style="background:var(--accent-green);color:#000;" id="btn-upload-fixed">📤 Upload File (Aman)</button>
+          <button type="submit" class="btn btn-fixed-submit" id="btn-upload-fixed">📤 Upload File (Aman)</button>
         </form>
       </div>
     </section>

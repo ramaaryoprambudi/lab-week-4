@@ -1,4 +1,5 @@
 <?php
+include_once('config.php');
 $title = "Dashboard";
 include('header.php');
 ?>
@@ -41,11 +42,11 @@ include('header.php');
           </ul>
           <div class="lab-buttons" style="display:flex; flex-direction:column; gap:0.5rem; width:100%;">
             <div style="display:flex; gap:0.5rem; width:100%;">
-              <a href="/file-upload-1.php" class="btn btn-vuln" style="flex:1; text-align:center; padding:0.4rem 0.5rem; font-size:0.75rem;">Level 1</a>
-              <a href="/file-upload-2.php" class="btn btn-vuln" style="flex:1; text-align:center; padding:0.4rem 0.5rem; font-size:0.75rem;">Level 2</a>
-              <a href="/file-upload-3.php" class="btn btn-vuln" style="flex:1; text-align:center; padding:0.4rem 0.5rem; font-size:0.75rem;">Level 3</a>
+              <a href="<?= $base_url ?>/file-upload-1.php" class="btn btn-vuln" style="flex:1; text-align:center; padding:0.4rem 0.5rem; font-size:0.75rem;">Level 1</a>
+              <a href="<?= $base_url ?>/file-upload-2.php" class="btn btn-vuln" style="flex:1; text-align:center; padding:0.4rem 0.5rem; font-size:0.75rem;">Level 2</a>
+              <a href="<?= $base_url ?>/file-upload-3.php" class="btn btn-vuln" style="flex:1; text-align:center; padding:0.4rem 0.5rem; font-size:0.75rem;">Level 3</a>
             </div>
-            <a href="/file-upload-fixed.php" class="btn btn-fixed" style="width:100%; text-align:center;">✅ Level 4 (Secure)</a>
+            <a href="<?= $base_url ?>/file-upload-fixed.php" class="btn btn-fixed" style="width:100%; text-align:center;">✅ Level 4 (Secure)</a>
           </div>
         </div>
       </div>
@@ -66,8 +67,8 @@ include('header.php');
             <li>Perlindungan secret &amp; config</li>
           </ul>
           <div class="lab-buttons">
-            <a href="/info-disclosure.php" class="btn btn-vuln" id="btn-lab2-vuln">⚠️ Vulnerable</a>
-            <a href="/info-disclosure-fixed.php" class="btn btn-fixed" id="btn-lab2-fixed">✅ Fixed</a>
+            <a href="<?= $base_url ?>/info-disclosure.php" class="btn btn-vuln" id="btn-lab2-vuln">⚠️ Vulnerable</a>
+            <a href="<?= $base_url ?>/info-disclosure-fixed.php" class="btn btn-fixed" id="btn-lab2-fixed">✅ Fixed</a>
           </div>
         </div>
       </div>
@@ -88,8 +89,8 @@ include('header.php');
             <li>Burp Intruder / Turbo Intruder</li>
           </ul>
           <div class="lab-buttons">
-            <a href="/race-condition.php" class="btn btn-vuln" id="btn-lab3-vuln">⚠️ Vulnerable</a>
-            <a href="/race-condition-fixed.php" class="btn btn-fixed" id="btn-lab3-fixed">✅ Fixed</a>
+            <a href="<?= $base_url ?>/race-condition.php" class="btn btn-vuln" id="btn-lab3-vuln">⚠️ Vulnerable</a>
+            <a href="<?= $base_url ?>/race-condition-fixed.php" class="btn btn-fixed" id="btn-lab3-fixed">✅ Fixed</a>
           </div>
         </div>
       </div>
@@ -110,7 +111,7 @@ include('header.php');
             <li>Cookie security flags</li>
           </ul>
           <div class="lab-buttons">
-            <a href="/recon.php" class="btn" style="background:rgba(94,53,177,0.15);color:#b39ddb;border:1px solid rgba(94,53,177,0.4);" id="btn-lab4-recon">🕵️ Buka Lab Recon</a>
+            <a href="<?= $base_url ?>/recon.php" class="btn" style="background:rgba(94,53,177,0.15);color:#b39ddb;border:1px solid rgba(94,53,177,0.4);" id="btn-lab4-recon">🕵️ Buka Lab Recon</a>
           </div>
         </div>
       </div>

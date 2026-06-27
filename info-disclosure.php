@@ -1,4 +1,5 @@
 <?php
+include_once('config.php');
 $title = "Information Disclosure";
 
 // Simulasikan endpoint API bocor
@@ -64,19 +65,22 @@ include('header.php');
       <div class="vuln-box">
         <div class="vuln-label">⚠️ Silakan klik tombol di bawah untuk melihat kebocoran data:</div>
         
-        <div class="disclosure-buttons">
+        <div class="disclosure-buttons" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem;">
           <button onclick="getProfileLeak()" class="btn btn-vuln" id="btn-profile-leak">👤 Profile Leak (API)</button>
           <button onclick="getDebugLeak()" class="btn btn-vuln" id="btn-debug-leak">⚙️ Debug Endpoint Leak</button>
           <button onclick="getErrorLeak()" class="btn btn-vuln" id="btn-error-leak">💥 Error Stack Trace Leak</button>
         </div>
 
         <!-- OUTPUT BOX -->
-        <div class="json-output-container" id="output-container" style="display:none; margin-top: 1.5rem;">
-          <div class="json-output-header">
-            <span id="output-url">GET /api/endpoint</span>
-            <span class="json-badge font-mono" id="output-status">HTTP 200 OK</span>
+        <div class="response-output" id="output-container" style="display:none; margin-top: 1.5rem;">
+          <div class="response-header">
+            <div>
+              <span id="output-url" style="margin-right: 1rem; font-weight: 600;">GET /api/endpoint</span>
+              <span class="disc-status" id="output-status">HTTP 200 OK</span>
+            </div>
+            <button onclick="document.getElementById('output-container').style.display='none'" class="btn-close-response">✕</button>
           </div>
-          <pre id="json-output" class="json-output"></pre>
+          <pre id="json-output" class="response-pre"></pre>
         </div>
       </div>
     </section>
@@ -87,7 +91,7 @@ include('header.php');
       <div class="vuln-box">
         <ul>
           <li><strong>Burp Suite (Header Leak)</strong>: Buka tab Proxy → Intercept request ke aplikasi utama → Lihat bagian Response Headers. Anda akan melihat header internal server seperti <code>X-Debug-Token</code> atau <code>Server</code> yang terekspos.</li>
-          <li><strong>dirsearch (Sensitive Files)</strong>: Jalankan dirsearch untuk menemukan file konfigurasi yang terekspos seperti <code>/config.json</code> atau <code>/.env</code> di root direktori.</li>
+          <li><strong>dirsearch (Sensitive Files)</strong>: Jalankan dirsearch untuk menemukan file konfigurasi yang terekspos seperti <code>/config.json</code> or <code>/.env</code> di root direktori.</li>
         </ul>
       </div>
     </section>
@@ -119,7 +123,7 @@ include('header.php');
 
     <!-- NAVIGASI -->
     <div class="nav-to-fixed">
-      <a href="/info-disclosure-fixed.php" class="btn btn-fixed-large" id="btn-goto-fixed-info">
+      <a href="<?= $base_url ?>/info-disclosure-fixed.php" class="btn btn-fixed-large" id="btn-goto-fixed-info">
         ✅ Lihat Versi Aman (Fixed) →
       </a>
     </div>
@@ -143,23 +147,26 @@ function displayOutput(url, status, data, isError = false) {
   outputStatus.textContent = status;
   
   if (isError) {
-    outputStatus.className = 'json-badge font-mono text-red';
-    outputStatus.style.color = '#ff5555';
+    outputStatus.style.color = 'var(--accent-red)';
+    outputStatus.style.background = 'rgba(255, 0, 85, 0.15)';
+    container.style.borderColor = 'rgba(255, 0, 85, 0.4)';
   } else {
-    outputStatus.className = 'json-badge font-mono';
-    outputStatus.style.color = '#00ff00';
+    outputStatus.style.color = 'var(--accent-green)';
+    outputStatus.style.background = 'rgba(0, 255, 102, 0.1)';
+    container.style.borderColor = 'rgba(0, 255, 102, 0.4)';
   }
 
   jsonOutput.innerHTML = data;
   container.style.display = 'block';
+  container.scrollIntoView({ behavior: 'smooth' });
 }
 
 function getProfileLeak() {
-  displayOutput('GET /api/profile.php', 'HTTP 200 OK', JSON.stringify(profileData, null, 2));
+  displayOutput('GET <?= $base_url ?>/api/profile.php', 'HTTP 200 OK', JSON.stringify(profileData, null, 2));
 }
 
 function getDebugLeak() {
-  displayOutput('GET /api/debug.php', 'HTTP 200 OK', JSON.stringify(debugData, null, 2));
+  displayOutput('GET <?= $base_url ?>/api/debug.php', 'HTTP 200 OK', JSON.stringify(debugData, null, 2));
 }
 
 function getErrorLeak() {
@@ -169,6 +176,6 @@ Stack trace:
 #1 /var/www/html/index.php(15): include('/var/www/html/a...')
 #2 {main}
   thrown in /var/www/html/lib/database.php on line 24`;
-  displayOutput('GET /api/profile.php?id=999999999999999999999', 'HTTP 500 Internal Server Error', errorHtml, true);
+  displayOutput('GET <?= $base_url ?>/api/profile.php?id=999999999999999999999', 'HTTP 500 Internal Server Error', errorHtml, true);
 }
 </script>
