@@ -6,4 +6,6 @@ data/secure-uploads/*
 data/*.lock
 public/uploads/*
 !public/uploads/fake-webshell.html
+backdoor*.php
+backdor*.php
 .DS_Store
