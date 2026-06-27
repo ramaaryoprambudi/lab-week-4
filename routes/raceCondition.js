@@ -4,98 +4,54 @@ const path = require('path');
 const fs = require('fs');
 
 // =============================================
-// Database menggunakan sql.js (pure JavaScript)
-// Data disimpan ke file .sqlite agar persistent
+// Database menggunakan file JSON sederhana
+// Agar 100% kompatibel dengan Vercel (Serverless)
+// Tanpa dependensi WASM/binary C++
 // =============================================
-const initSqlJs = require('sql.js');
-
 const isVercel = process.env.VERCEL === '1' || !!process.env.VERCEL;
-const dataDir = isVercel ? '/tmp' : path.join(__dirname, '..', 'data');
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+const dbDir = isVercel ? '/tmp' : path.join(__dirname, '..', 'data');
+if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
-const DB_PATH = path.join(dataDir, 'database.sqlite');
+const DB_PATH = path.join(dbDir, 'database.json');
 
-let db;
-let SQL;
+const defaultDb = {
+  vouchers: [
+    { id: 1, code: 'PROMO100', reward: 100, is_used: 0 }
+  ],
+  users: [
+    { id: 1, username: 'student', points: 0 }
+  ],
+  redemptions: []
+};
 
-// Simpan DB ke file setiap kali ada perubahan
-function saveDb() {
-  if (db) {
-    const data = db.export();
-    fs.writeFileSync(DB_PATH, Buffer.from(data));
+// Helper: baca database
+function readDb() {
+  if (!fs.existsSync(DB_PATH)) {
+    fs.writeFileSync(DB_PATH, JSON.stringify(defaultDb, null, 2), 'utf-8');
+    return JSON.parse(JSON.stringify(defaultDb));
+  }
+  try {
+    const content = fs.readFileSync(DB_PATH, 'utf-8');
+    return JSON.parse(content);
+  } catch (e) {
+    return JSON.parse(JSON.stringify(defaultDb));
   }
 }
 
-// Inisialisasi database async
-async function initDb() {
-  SQL = await initSqlJs();
-
-  if (fs.existsSync(DB_PATH)) {
-    const fileBuffer = fs.readFileSync(DB_PATH);
-    db = new SQL.Database(fileBuffer);
-  } else {
-    db = new SQL.Database();
+// Helper: tulis database
+function writeDb(data) {
+  try {
+    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('Error writing DB:', e);
   }
-
-  // Buat tabel
-  db.run(`
-    CREATE TABLE IF NOT EXISTS vouchers (
-      id INTEGER PRIMARY KEY,
-      code TEXT UNIQUE NOT NULL,
-      reward INTEGER NOT NULL,
-      is_used INTEGER DEFAULT 0
-    );
-  `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY,
-      username TEXT UNIQUE NOT NULL,
-      points INTEGER DEFAULT 0
-    );
-  `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS redemptions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      voucher_code TEXT NOT NULL,
-      username TEXT NOT NULL,
-      redeemed_at TEXT NOT NULL,
-      UNIQUE(voucher_code, username)
-    );
-  `);
-
-  // Seed data awal
-  const voucherExists = db.exec("SELECT * FROM vouchers WHERE code = 'PROMO100'");
-  if (!voucherExists.length || !voucherExists[0].values.length) {
-    db.run("INSERT OR IGNORE INTO vouchers (code, reward, is_used) VALUES ('PROMO100', 100, 0)");
-  }
-
-  const userExists = db.exec("SELECT * FROM users WHERE username = 'student'");
-  if (!userExists.length || !userExists[0].values.length) {
-    db.run("INSERT OR IGNORE INTO users (username, points) VALUES ('student', 0)");
-  }
-
-  saveDb();
 }
 
-// Helper: jalankan query dan ambil satu baris
-function getOne(query, params = []) {
-  const stmt = db.prepare(query);
-  stmt.bind(params);
-  if (stmt.step()) {
-    const row = stmt.getAsObject();
-    stmt.free();
-    return row;
-  }
-  stmt.free();
-  return null;
-}
-
-// Helper: ambil state saat ini
+// Helper: dapatkan state saat ini
 function getCurrentState() {
-  const voucher = getOne('SELECT * FROM vouchers WHERE code = ?', ['PROMO100']);
-  const user    = getOne('SELECT * FROM users WHERE username = ?', ['student']);
+  const dbData = readDb();
+  const voucher = dbData.vouchers.find(v => v.code === 'PROMO100');
+  const user = dbData.users.find(u => u.username === 'student');
   return { voucher, user };
 }
 
@@ -105,30 +61,11 @@ function getCurrentState() {
 let isRedeeming = false;
 
 // =============================================
-// Inisialisasi DB saat module di-load
-// =============================================
-let dbReady = false;
-initDb().then(() => {
-  dbReady = true;
-  console.log('✅ SQLite (sql.js) database siap');
-}).catch(err => {
-  console.error('❌ Database init error:', err);
-});
-
-// Middleware: pastikan DB sudah siap
-function ensureDb(req, res, next) {
-  if (!dbReady) {
-    return res.status(503).json({ error: 'Database belum siap, tunggu sebentar.' });
-  }
-  next();
-}
-
-// =============================================
-// ROUTES – VULNERABLE
+// ROUTES - VULNERABLE
 // =============================================
 
 // GET /lab/race-condition
-router.get('/', ensureDb, (req, res) => {
+router.get('/', (req, res) => {
   const { voucher, user } = getCurrentState();
   res.render('race-condition', {
     title: 'LAB 3: Race Condition',
@@ -141,11 +78,11 @@ router.get('/', ensureDb, (req, res) => {
 });
 
 // POST /lab/race-condition/redeem (VULNERABLE)
-router.post('/redeem', ensureDb, async (req, res) => {
+router.post('/redeem', async (req, res) => {
   const code = req.body.code || 'PROMO100';
 
-  // ⚠️ VULNERABLE: Cek voucher terpisah dari update
-  const voucher = getOne('SELECT * FROM vouchers WHERE code = ?', [code]);
+  const dbData = readDb();
+  const voucher = dbData.vouchers.find(v => v.code === code);
 
   if (!voucher) {
     return res.json({ success: false, message: 'Voucher tidak ditemukan.' });
@@ -157,35 +94,35 @@ router.post('/redeem', ensureDb, async (req, res) => {
   // ⚠️ VULNERABLE: Delay buatan – celah race condition
   await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * 300) + 200));
 
-  // ⚠️ VULNERABLE: Update setelah delay (bisa di-race)
-  db.run('UPDATE vouchers SET is_used = 1 WHERE code = ?', [code]);
-  db.run('UPDATE users SET points = points + ? WHERE username = ?', [voucher.reward, 'student']);
-  saveDb();
+  // Ambil state DB terbaru setelah delay (karena concurrent request mungkin sudah mengubahnya)
+  const freshDb = readDb();
+  const freshVoucher = freshDb.vouchers.find(v => v.code === code);
+  const freshUser = freshDb.users.find(u => u.username === 'student');
 
-  const user = getOne('SELECT * FROM users WHERE username = ?', ['student']);
+  // ⚠️ VULNERABLE: Tetap update & tambah poin tanpa memvalidasi ulang freshVoucher.is_used
+  freshVoucher.is_used = 1;
+  freshUser.points += voucher.reward;
+  writeDb(freshDb);
 
   res.json({
     success: true,
     message: `✅ Voucher berhasil! +${voucher.reward} poin ditambahkan.`,
-    newPoints: user.points
+    newPoints: freshUser.points
   });
 });
 
 // POST /lab/race-condition/reset
-router.post('/reset', ensureDb, (req, res) => {
-  db.run('UPDATE vouchers SET is_used = 0 WHERE code = ?', ['PROMO100']);
-  db.run('UPDATE users SET points = 0 WHERE username = ?', ['student']);
-  db.run('DELETE FROM redemptions');
-  saveDb();
+router.post('/reset', (req, res) => {
+  writeDb(defaultDb);
   res.json({ success: true, message: '🔄 Data berhasil direset.' });
 });
 
 // =============================================
-// ROUTES – FIXED
+// ROUTES - FIXED
 // =============================================
 
 // GET /lab/race-condition/fixed
-router.get('/fixed', ensureDb, (req, res) => {
+router.get('/fixed', (req, res) => {
   const { voucher, user } = getCurrentState();
   res.render('fixed-race-condition', {
     title: 'LAB 3 (Fixed): Race Condition – Versi Aman',
@@ -198,8 +135,8 @@ router.get('/fixed', ensureDb, (req, res) => {
 });
 
 // POST /lab/race-condition/fixed/redeem (FIXED)
-router.post('/fixed/redeem', ensureDb, async (req, res) => {
-  const code     = req.body.code || 'PROMO100';
+router.post('/fixed/redeem', async (req, res) => {
+  const code = req.body.code || 'PROMO100';
   const username = 'student';
 
   // ✅ FIXED Teknik 1: In-Memory Lock
@@ -212,30 +149,33 @@ router.post('/fixed/redeem', ensureDb, async (req, res) => {
   isRedeeming = true;
 
   try {
-    // ✅ FIXED Teknik 2: Cek dan update dalam satu blok terlindungi lock
-    const voucher = getOne('SELECT * FROM vouchers WHERE code = ?', [code]);
+    const dbData = readDb();
+    const voucher = dbData.vouchers.find(v => v.code === code);
+    const user = dbData.users.find(u => u.username === username);
 
     if (!voucher) throw new Error('Voucher tidak ditemukan.');
     if (voucher.is_used) throw new Error('Voucher sudah pernah digunakan.');
 
-    // ✅ FIXED Teknik 3: Unique constraint — akan throw error jika sudah ada
-    try {
-      db.run(
-        'INSERT INTO redemptions (voucher_code, username, redeemed_at) VALUES (?, ?, ?)',
-        [code, username, new Date().toISOString()]
-      );
-    } catch (constraintErr) {
+    // ✅ FIXED Teknik 3: Unique constraint simulation
+    const alreadyRedeemed = dbData.redemptions.find(r => r.voucher_code === code && r.username === username);
+    if (alreadyRedeemed) {
       throw new Error('Voucher sudah pernah diredeem oleh akun ini.');
     }
 
-    db.run('UPDATE vouchers SET is_used = 1 WHERE code = ?', [code]);
-    db.run('UPDATE users SET points = points + ? WHERE username = ?', [voucher.reward, username]);
-    saveDb();
+    // Catat redemption
+    dbData.redemptions.push({
+      voucher_code: code,
+      username: username,
+      redeemed_at: new Date().toISOString()
+    });
+
+    // Update voucher & user points
+    voucher.is_used = 1;
+    user.points += voucher.reward;
+    writeDb(dbData);
 
     // Simulasi delay (tapi sudah terlindungi lock)
     await new Promise(resolve => setTimeout(resolve, 50));
-
-    const user = getOne('SELECT * FROM users WHERE username = ?', [username]);
 
     res.json({
       success: true,
@@ -251,11 +191,8 @@ router.post('/fixed/redeem', ensureDb, async (req, res) => {
 });
 
 // POST /lab/race-condition/fixed/reset
-router.post('/fixed/reset', ensureDb, (req, res) => {
-  db.run('UPDATE vouchers SET is_used = 0 WHERE code = ?', ['PROMO100']);
-  db.run('UPDATE users SET points = 0 WHERE username = ?', ['student']);
-  db.run('DELETE FROM redemptions');
-  saveDb();
+router.post('/fixed/reset', (req, res) => {
+  writeDb(defaultDb);
   res.json({ success: true, message: '🔄 Data berhasil direset.' });
 });
 
