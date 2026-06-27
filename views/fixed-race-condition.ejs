@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="LAB 3 Fixed: Race Condition – Versi Aman dengan locking, transaksi, dan unique constraint." />
+  <title><%= title %> | CyberLAB</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<%- include('partials/navbar') %>
+
+<main class="main-content">
+
+  <div class="page-header fixed-page-header">
+    <div class="page-header-inner">
+      <div class="lab-badge fixed-badge">✅ FIXED / SECURE VERSION</div>
+      <h1>⚡ LAB 3 (Fixed): Race Condition – Versi Aman</h1>
+      <p>Implementasi redeem voucher yang aman menggunakan in-memory lock, transaksi SQLite, dan unique constraint.</p>
+    </div>
+  </div>
+
+  <div class="lab-container">
+
+    <!-- PERBEDAAN -->
+    <section class="lab-section">
+      <h2>🔄 Perbedaan dari Versi Vulnerable</h2>
+      <div class="compare-grid">
+        <div class="compare-box compare-vuln">
+          <h4>⚠️ Versi Vulnerable</h4>
+          <ul>
+            <li>Cek &amp; update terpisah</li>
+            <li>Delay buatan 200–500ms</li>
+            <li>Tidak ada locking</li>
+            <li>Tidak ada transaksi</li>
+            <li>10 request bisa semua berhasil</li>
+          </ul>
+        </div>
+        <div class="compare-box compare-fixed">
+          <h4>✅ Versi Fixed</h4>
+          <ul>
+            <li>In-memory lock aktif</li>
+            <li>Transaksi SQLite atomik</li>
+            <li>Unique constraint di DB</li>
+            <li>Hanya 1 request berhasil</li>
+            <li>9 sisanya ditolak dengan pesan jelas</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Teknik yang digunakan -->
+      <div class="technique-grid">
+        <div class="technique-card">
+          <div class="technique-icon">🔒</div>
+          <h4>Teknik 1: In-Memory Lock</h4>
+          <p>Variable <code>isRedeeming = true</code> mencegah request kedua masuk selama proses pertama belum selesai.</p>
+        </div>
+        <div class="technique-card">
+          <div class="technique-icon">🗄️</div>
+          <h4>Teknik 2: Transaksi Database</h4>
+          <p>Pengecekan dan update status voucher dilakukan dalam satu transaksi SQLite atomik — tidak bisa diinterupsi.</p>
+        </div>
+        <div class="technique-card">
+          <div class="technique-icon">🔑</div>
+          <h4>Teknik 3: Unique Constraint</h4>
+          <p>Tabel <code>redemptions</code> memiliki <code>UNIQUE(voucher_code, username)</code> — insert kedua akan gagal di level database.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- STATUS BOARD -->
+    <section class="lab-section">
+      <h2>📊 Status Saat Ini</h2>
+      <div class="status-board fixed-board" id="status-board-fixed">
+        <div class="status-item">
+          <div class="status-label">👤 User</div>
+          <div class="status-value" id="stat-username-fixed"><%= user.username %></div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">💰 Poin</div>
+          <div class="status-value status-points" id="stat-points-fixed"><%= user.points %></div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">🎟️ Voucher</div>
+          <div class="status-value" id="stat-voucher-fixed"><%= voucher.code %></div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">📋 Status Voucher</div>
+          <div class="status-value <%= voucher.is_used ? 'status-used' : 'status-available' %>" id="stat-status-fixed">
+            <%= voucher.is_used ? '✅ Sudah Digunakan' : '🟢 Tersedia' %>
+          </div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">🎁 Reward</div>
+          <div class="status-value"><%= voucher.reward %> poin</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SIMULASI FIXED -->
+    <section class="lab-section">
+      <h2>🧪 Simulasi (Versi Aman)</h2>
+      <div class="fixed-box">
+        <div class="fixed-label">✅ Endpoint Aman: <code>POST /lab/race-condition/fixed/redeem</code></div>
+        <p>Kirim 10 request bersamaan — hanya <strong>1 yang berhasil</strong>, 9 sisanya ditolak dengan pesan jelas.</p>
+
+        <div class="race-buttons">
+          <button class="btn btn-fixed-submit" id="btn-redeem-fixed-once" onclick="redeemFixedOnce()">
+            🎟️ Redeem Voucher Sekali
+          </button>
+          <button class="btn btn-race-fixed" id="btn-race-fixed-attack" onclick="raceFixedAttack()">
+            ⚡ Simulasikan 10 Request Bersamaan
+          </button>
+          <button class="btn btn-reset" id="btn-reset-fixed" onclick="resetFixed()">
+            🔄 Reset Data
+          </button>
+        </div>
+
+        <!-- LOG OUTPUT -->
+        <div class="race-log-container">
+          <div class="race-log-header">
+            <span>📋 Log Response</span>
+            <button onclick="document.getElementById('race-log-fixed').innerHTML=''" class="btn-clear-log">🗑️ Clear</button>
+          </div>
+          <div id="race-log-fixed" class="race-log"></div>
+        </div>
+
+        <div class="info-callout callout-green">
+          <strong>✅ Hasil yang diharapkan:</strong> Dari 10 request bersamaan, hanya 1 yang berhasil mendapat poin. 9 sisanya menerima pesan penolakan yang informatif.
+        </div>
+      </div>
+    </section>
+
+    <!-- PENJELASAN PENCEGAHAN -->
+    <section class="lab-section">
+      <h2>🛡️ Penjelasan Pencegahan</h2>
+      <div class="fix-detail-grid">
+
+        <div class="fix-detail-item">
+          <div class="fix-num">1</div>
+          <div>
+            <strong>In-Memory Lock</strong>
+            <p>Gunakan flag <code>isRedeeming</code>. Saat satu proses berjalan, request lain langsung ditolak. Setelah selesai, lock dilepas di blok <code>finally</code>.</p>
+          </div>
+        </div>
+
+        <div class="fix-detail-item">
+          <div class="fix-num">2</div>
+          <div>
+            <strong>Transaksi Database (ACID)</strong>
+            <p>Wrap operasi cek + insert + update dalam satu <code>db.transaction()</code>. Jika satu langkah gagal, semua di-rollback otomatis.</p>
+          </div>
+        </div>
+
+        <div class="fix-detail-item">
+          <div class="fix-num">3</div>
+          <div>
+            <strong>Unique Constraint</strong>
+            <p>Tabel <code>redemptions</code> dengan <code>UNIQUE(voucher_code, username)</code> menjamin data tidak bisa dobel meski ada concurrency tinggi.</p>
+          </div>
+        </div>
+
+        <div class="fix-detail-item">
+          <div class="fix-num">4</div>
+          <div>
+            <strong>Rate Limiting</strong>
+            <p>Batasi jumlah request per IP/user per menit menggunakan middleware seperti <code>express-rate-limit</code>.</p>
+          </div>
+        </div>
+
+        <div class="fix-detail-item">
+          <div class="fix-num">5</div>
+          <div>
+            <strong>Idempotency Key</strong>
+            <p>Gunakan token unik per operasi. Jika token yang sama dikirim dua kali, server cukup kembalikan hasil yang sama tanpa proses ulang.</p>
+          </div>
+        </div>
+
+        <div class="fix-detail-item">
+          <div class="fix-num">6</div>
+          <div>
+            <strong>Validasi Ulang Sebelum Update</strong>
+            <p>Di dalam transaksi, selalu re-read kondisi terbaru dari database sebelum melakukan update (bukan caching dari sebelumnya).</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- KODE IMPLEMENTASI -->
+    <section class="lab-section">
+      <h2>💻 Implementasi (Kode Penting)</h2>
+      <div class="code-block">
+        <div class="code-label">routes/raceCondition.js – Fixed Version</div>
+        <pre><code>let isRedeeming = false; // ✅ Teknik 1: In-Memory Lock
+
+router.post('/fixed/redeem', async (req, res) => {
+  if (isRedeeming) {
+    return res.json({ success: false,
+      message: 'Redeem sedang diproses, coba lagi nanti.' });
+  }
+  isRedeeming = true;
+
+  try {
+    // ✅ Teknik 2: Transaksi Database Atomik
+    const redeemTx = db.transaction(() => {
+      const voucher = db.prepare(
+        'SELECT * FROM vouchers WHERE code = ?'
+      ).get(code);
+
+      if (!voucher || voucher.is_used)
+        throw new Error('Voucher sudah digunakan.');
+
+      // ✅ Teknik 3: Unique Constraint → gagal jika sudah ada
+      db.prepare(`
+        INSERT INTO redemptions (voucher_code, username, redeemed_at)
+        VALUES (?, ?, ?)
+      `).run(code, username, new Date().toISOString());
+
+      db.prepare('UPDATE vouchers SET is_used = 1 WHERE code = ?').run(code);
+      db.prepare('UPDATE users SET points = points + ? WHERE username = ?')
+        .run(voucher.reward, username);
+
+      return voucher.reward;
+    });
+
+    const reward = redeemTx();
+    res.json({ success: true, message: `+${reward} poin!` });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  } finally {
+    isRedeeming = false; // ✅ Selalu lepas lock
+  }
+});</code></pre>
+      </div>
+    </section>
+
+    <!-- NAVIGASI -->
+    <div class="nav-to-fixed">
+      <a href="/lab/race-condition" class="btn btn-vuln-outline" id="btn-back-to-vuln-race">← Kembali ke Versi Vulnerable</a>
+      <a href="/" class="btn btn-home" id="btn-home-from-fixed-race">🏠 Kembali ke Home</a>
+    </div>
+
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+
+<script>
+const ENDPOINT_FIXED = '/lab/race-condition/fixed/redeem';
+const RESET_FIXED    = '/lab/race-condition/fixed/reset';
+
+function addLog(msg, type = 'info') {
+  const log = document.getElementById('race-log-fixed');
+  const entry = document.createElement('div');
+  entry.className = `log-entry log-${type}`;
+  const time = new Date().toLocaleTimeString('id-ID');
+  entry.innerHTML = `<span class="log-time">[${time}]</span> ${msg}`;
+  log.prepend(entry);
+}
+
+async function redeemFixedOnce() {
+  const btn = document.getElementById('btn-redeem-fixed-once');
+  btn.disabled = true;
+  addLog('Mengirim 1 request redeem (fixed)...', 'info');
+  try {
+    const res = await fetch(ENDPOINT_FIXED, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: 'PROMO100' })
+    });
+    const data = await res.json();
+    addLog(data.message + (data.newPoints !== undefined ? ` | Poin: <strong>${data.newPoints}</strong>` : ''),
+      data.success ? 'success' : 'error');
+  } catch (err) {
+    addLog('Fetch error: ' + err.message, 'error');
+  }
+  btn.disabled = false;
+  setTimeout(() => location.reload(), 1000);
+}
+
+async function raceFixedAttack() {
+  const btn = document.getElementById('btn-race-fixed-attack');
+  btn.disabled = true;
+  addLog('⚡ Mengirim 10 request BERSAMAAN ke versi fixed...', 'warning');
+
+  const requests = [];
+  for (let i = 0; i < 10; i++) {
+    requests.push(
+      fetch(ENDPOINT_FIXED, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: 'PROMO100' })
+      }).then(r => r.json()).then(data => ({ i: i + 1, ...data }))
+    );
+  }
+
+  const results = await Promise.allSettled(requests);
+  let successCount = 0;
+
+  results.forEach(r => {
+    if (r.status === 'fulfilled') {
+      const d = r.value;
+      if (d.success) {
+        successCount++;
+        addLog(`Request #${d.i}: ✅ ${d.message} | Poin: <strong>${d.newPoints}</strong>`, 'success');
+      } else {
+        addLog(`Request #${d.i}: ❌ ${d.message}`, 'error');
+      }
+    } else {
+      addLog(`Request error: ${r.reason}`, 'error');
+    }
+  });
+
+  addLog(
+    `<strong>Hasil: Hanya ${successCount} dari 10 yang berhasil.</strong> ${successCount <= 1 ? '← Proteksi bekerja! 🛡️' : '← Ada celah!'}`,
+    successCount <= 1 ? 'success' : 'warning'
+  );
+
+  btn.disabled = false;
+  setTimeout(() => location.reload(), 1500);
+}
+
+async function resetFixed() {
+  try {
+    const res = await fetch(RESET_FIXED, { method: 'POST' });
+    const data = await res.json();
+    addLog(data.message, 'info');
+    setTimeout(() => location.reload(), 800);
+  } catch (err) {
+    addLog('Reset error: ' + err.message, 'error');
+  }
+}
+</script>
+</body>
+</html>

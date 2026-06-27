@@ -1,0 +1,41 @@
+<%# Partial: navbar %>
+<nav class="navbar">
+  <div class="nav-brand">
+    <a href="/" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:0.5rem;">
+      <span class="nav-icon">🔐</span>
+      <span>CyberLAB <span class="nav-week">Week 4</span></span>
+    </a>
+  </div>
+  <ul class="nav-links">
+    <li><a href="/" class="<%= locals.page === 'home' ? 'active' : '' %>">🏠 Home</a></li>
+    <li class="nav-dropdown">
+      <a href="/lab/file-upload" class="<%= (locals.page === 'file-upload' || locals.page === 'fixed-file-upload') ? 'active' : '' %>">📁 File Upload</a>
+      <ul class="dropdown-menu">
+        <li><a href="/lab/file-upload">⚠️ Vulnerable</a></li>
+        <li><a href="/lab/file-upload/fixed">✅ Fixed</a></li>
+      </ul>
+    </li>
+    <li class="nav-dropdown">
+      <a href="/lab/information-disclosure" class="<%= (locals.page === 'info-disclosure' || locals.page === 'fixed-info-disclosure') ? 'active' : '' %>">🔍 Info Disclosure</a>
+      <ul class="dropdown-menu">
+        <li><a href="/lab/information-disclosure">⚠️ Vulnerable</a></li>
+        <li><a href="/lab/information-disclosure/fixed">✅ Fixed</a></li>
+      </ul>
+    </li>
+    <li class="nav-dropdown">
+      <a href="/lab/race-condition" class="<%= (locals.page === 'race-condition' || locals.page === 'fixed-race-condition') ? 'active' : '' %>">⚡ Race Condition</a>
+      <ul class="dropdown-menu">
+        <li><a href="/lab/race-condition">⚠️ Vulnerable</a></li>
+        <li><a href="/lab/race-condition/fixed">✅ Fixed</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="/lab/recon" class="<%= locals.page === 'recon' ? 'active' : '' %>" style="color:<%= locals.page === 'recon' ? '#b39ddb' : '' %>">🕵️ Recon Lab</a>
+    </li>
+  </ul>
+</nav>
+
+<div class="warning-banner">
+  <span class="warn-icon">⚠️</span>
+  <strong>PERINGATAN:</strong> Lab ini dibuat <strong>hanya untuk pembelajaran lokal</strong> dan tidak boleh digunakan untuk menyerang sistem nyata.
+</div>

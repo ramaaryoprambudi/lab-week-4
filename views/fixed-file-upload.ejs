@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="LAB 1 Fixed: File Upload – Versi Aman dengan validasi lengkap." />
+  <title><%= title %> | CyberLAB</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<%- include('partials/navbar') %>
+
+<main class="main-content">
+
+  <div class="page-header fixed-page-header">
+    <div class="page-header-inner">
+      <div class="lab-badge fixed-badge">✅ FIXED / SECURE VERSION</div>
+      <h1>📁 LAB 1 (Fixed): File Upload – Versi Aman</h1>
+      <p>Implementasi upload file yang aman dengan validasi extension, MIME type, ukuran, dan rename file.</p>
+    </div>
+  </div>
+
+  <div class="lab-container">
+
+    <!-- PERBEDAAN DARI VULNERABLE -->
+    <section class="lab-section">
+      <h2>🔄 Perbedaan dari Versi Vulnerable</h2>
+      <div class="compare-grid">
+        <div class="compare-box compare-vuln">
+          <h4>⚠️ Versi Vulnerable</h4>
+          <ul>
+            <li>Semua jenis file diterima</li>
+            <li>Nama asli file digunakan</li>
+            <li>Disimpan di <code>public/uploads</code></li>
+            <li>Bisa diakses via URL</li>
+            <li>Tidak ada limit ukuran</li>
+          </ul>
+        </div>
+        <div class="compare-box compare-fixed">
+          <h4>✅ Versi Fixed</h4>
+          <ul>
+            <li>Hanya .jpg, .jpeg, .png, .pdf</li>
+            <li>File di-rename dengan UUID</li>
+            <li>Disimpan di folder terpisah</li>
+            <li>Tidak bisa diakses via URL</li>
+            <li>Maksimal 1 MB</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- FORM FIXED -->
+    <section class="lab-section">
+      <h2>🧪 Upload File (Versi Aman)</h2>
+      <div class="fixed-box">
+        <div class="fixed-label">✅ Endpoint Aman: <code>POST /lab/file-upload/fixed/upload</code></div>
+
+        <% if (message) { %>
+          <div class="alert alert-success"><%= message %></div>
+        <% } %>
+        <% if (error) { %>
+          <div class="alert alert-error"><%= error %></div>
+        <% } %>
+
+        <form action="/lab/file-upload/fixed/upload" method="POST" enctype="multipart/form-data" class="upload-form" id="upload-form-fixed">
+          <div class="form-group">
+            <label for="file-input-fixed">Pilih file yang akan diupload:</label>
+            <div class="file-input-wrapper">
+              <input type="file" name="file" id="file-input-fixed" class="file-input" accept=".jpg,.jpeg,.png,.pdf" />
+              <div class="file-input-display" id="file-display-fixed">Belum ada file dipilih...</div>
+            </div>
+            <small class="form-hint text-green">✅ Hanya menerima: .jpg, .jpeg, .png, .pdf | Maksimal: 1 MB</small>
+          </div>
+          <button type="submit" class="btn btn-fixed-submit" id="btn-upload-fixed">📤 Upload File (Secure)</button>
+        </form>
+
+        <!-- Coba upload file terlarang -->
+        <div class="test-section">
+          <h4>🧪 Coba Upload File Terlarang:</h4>
+          <p>Coba upload file dengan ekstensi <code>.html</code>, <code>.exe</code>, <code>.txt</code>, atau file lebih dari 1MB — semua akan <strong>ditolak</strong> oleh server.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOG FILE YANG DITERIMA -->
+    <% if (files && files.length > 0) { %>
+    <section class="lab-section">
+      <h2>📋 Log File yang Diterima (Metadata Saja)</h2>
+      <div class="fixed-box">
+        <p class="text-green"><strong>✅ Catatan:</strong> File disimpan di folder aman, tidak bisa diakses via URL langsung.</p>
+        <table class="file-table">
+          <thead>
+            <tr>
+              <th>Nama Asli</th>
+              <th>Disimpan Sebagai</th>
+              <th>MIME Type</th>
+              <th>Ukuran</th>
+              <th>Waktu Upload</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% files.forEach(function(f) { %>
+            <tr>
+              <td><code><%= f.originalName %></code></td>
+              <td><code class="text-green"><%= f.savedAs %></code></td>
+              <td><code><%= f.mimeType %></code></td>
+              <td><%= (f.size / 1024).toFixed(2) %> KB</td>
+              <td><%= f.uploadedAt %></td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <% } %>
+
+    <!-- PENJELASAN PERBAIKAN -->
+    <section class="lab-section">
+      <h2>🛡️ Penjelasan Cara Memperbaiki</h2>
+      <div class="fix-detail-grid">
+
+        <div class="fix-detail-item">
+          <div class="fix-num">1</div>
+          <div>
+            <strong>Whitelist Extension</strong>
+            <p>Hanya izinkan extension yang dibutuhkan: <code>.jpg</code>, <code>.jpeg</code>, <code>.png</code>, <code>.pdf</code>. Tolak semua yang lain.</p>
+          </div>
+        </div>
+
+        <div class="fix-detail-item">
+          <div class="fix-num">2</div>
+          <div>
+            <strong>Validasi MIME Type</strong>
+            <p>Periksa header MIME: <code>image/jpeg</code>, <code>image/png</code>, <code>application/pdf</code>. Attacker bisa mengubah extension tapi MIME yang benar lebih sulit dipalsukan.</p>
+          </div>
+        </div>
+
+        <div class="fix-detail-item">
+          <div class="fix-num">3</div>
+          <div>
+            <strong>Batasi Ukuran File</strong>
+            <p>Tetapkan batas maksimal (1 MB) untuk mencegah serangan DoS melalui file besar.</p>
+          </div>
+        </div>
+
+        <div class="fix-detail-item">
+          <div class="fix-num">4</div>
+          <div>
+            <strong>Rename dengan UUID</strong>
+            <p>Jangan gunakan nama asli dari user. Rename dengan UUID random untuk menghindari path traversal dan overwrite file.</p>
+          </div>
+        </div>
+
+        <div class="fix-detail-item">
+          <div class="fix-num">5</div>
+          <div>
+            <strong>Folder Terpisah dari Public</strong>
+            <p>Simpan file di <code>data/secure-uploads/</code>, bukan di <code>public/</code>. File tidak bisa diakses langsung via URL.</p>
+          </div>
+        </div>
+
+        <div class="fix-detail-item">
+          <div class="fix-num">6</div>
+          <div>
+            <strong>Nonaktifkan Eksekusi Script</strong>
+            <p>Di server production, konfigurasi web server agar folder upload tidak bisa mengeksekusi script apapun.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- KODE IMPLEMENTASI -->
+    <section class="lab-section">
+      <h2>💻 Implementasi (Kode Penting)</h2>
+      <div class="code-block">
+        <div class="code-label">routes/fileUpload.js – Fixed Version</div>
+        <pre><code>// ✅ Whitelist extension
+const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.pdf'];
+const ALLOWED_MIMETYPES  = ['image/jpeg', 'image/png', 'application/pdf'];
+const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1 MB
+
+// ✅ File filter
+const fixedFileFilter = (req, file, cb) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (!ALLOWED_EXTENSIONS.includes(ext)) {
+    return cb(new Error('Extension tidak diizinkan'), false);
+  }
+  if (!ALLOWED_MIMETYPES.includes(file.mimetype)) {
+    return cb(new Error('MIME type tidak diizinkan'), false);
+  }
+  cb(null, true);
+};
+
+// ✅ UUID rename
+filename: (req, file, cb) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  cb(null, uuidv4() + ext); // contoh: 3f4a...uuid...7b.jpg
+}
+
+// ✅ Limit ukuran
+const fixedUpload = multer({
+  storage: fixedStorage,
+  fileFilter: fixedFileFilter,
+  limits: { fileSize: MAX_FILE_SIZE }
+});</code></pre>
+      </div>
+    </section>
+
+    <!-- NAVIGASI -->
+    <div class="nav-to-fixed">
+      <a href="/lab/file-upload" class="btn btn-vuln-outline" id="btn-back-to-vuln-upload">← Kembali ke Versi Vulnerable</a>
+      <a href="/" class="btn btn-home" id="btn-home-from-fixed-upload">🏠 Kembali ke Home</a>
+    </div>
+
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+
+<script>
+  document.getElementById('file-input-fixed').addEventListener('change', function() {
+    const display = document.getElementById('file-display-fixed');
+    display.textContent = this.files[0] ? this.files[0].name + ' (' + (this.files[0].size / 1024).toFixed(2) + ' KB)' : 'Belum ada file dipilih...';
+  });
+</script>
+</body>
+</html>

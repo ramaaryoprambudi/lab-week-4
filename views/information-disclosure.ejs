@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="LAB 2: Information Disclosure – Simulasi kebocoran informasi sensitif aplikasi." />
+  <title><%= title %> | CyberLAB</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<%- include('partials/navbar') %>
+
+<main class="main-content">
+
+  <div class="page-header vuln-page-header">
+    <div class="page-header-inner">
+      <div class="lab-badge vuln-badge">⚠️ VULNERABLE VERSION</div>
+      <h1>🔍 LAB 2: Information Disclosure</h1>
+      <p>Simulasi kebocoran informasi sensitif melalui API, debug endpoint, dan error stack trace.</p>
+    </div>
+  </div>
+
+  <div class="lab-container">
+
+    <!-- KONSEP -->
+    <section class="lab-section">
+      <h2>📖 Konsep</h2>
+      <div class="concept-box">
+        <p><strong>Information Disclosure</strong> adalah kondisi ketika aplikasi membocorkan informasi yang tidak seharusnya diketahui oleh pengguna atau attacker. Informasi yang bocor dapat berupa:</p>
+        <ul>
+          <li>Data internal pengguna (ID internal, flag isAdmin, debug note)</li>
+          <li>Konfigurasi server (environment, path database, secret key)</li>
+          <li>Stack trace error yang menunjukkan struktur kode</li>
+          <li>Versi library, framework, atau platform yang digunakan</li>
+        </ul>
+        <p>Informasi ini memudahkan attacker melakukan <strong>reconnaissance</strong> sebelum serangan yang lebih besar.</p>
+      </div>
+    </section>
+
+    <!-- SIMULASI -->
+    <section class="lab-section">
+      <h2>🧪 Simulasi Endpoint Vulnerable</h2>
+      <div class="vuln-box">
+        <div class="vuln-label">⚠️ Klik tombol di bawah untuk melihat data yang bocor:</div>
+
+        <div class="endpoint-grid">
+
+          <div class="endpoint-card">
+            <div class="endpoint-method">GET</div>
+            <code>/lab/information-disclosure/profile</code>
+            <p>Mengembalikan data user lengkap termasuk field internal.</p>
+            <button class="btn btn-vuln-sm" id="btn-profile-leak" onclick="fetchEndpoint('/lab/information-disclosure/profile', 'profile')">
+              🔓 Lihat Profile Leak
+            </button>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="endpoint-method">GET</div>
+            <code>/lab/information-disclosure/debug</code>
+            <p>Menampilkan konfigurasi server, secret key, dan info environment.</p>
+            <button class="btn btn-vuln-sm" id="btn-debug-leak" onclick="fetchEndpoint('/lab/information-disclosure/debug', 'debug')">
+              🔓 Lihat Debug Leak
+            </button>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="endpoint-method">GET</div>
+            <code>/lab/information-disclosure/error</code>
+            <p>Menampilkan stack trace error langsung ke response user.</p>
+            <button class="btn btn-vuln-sm" id="btn-error-leak" onclick="fetchEndpoint('/lab/information-disclosure/error', 'error')">
+              🔓 Lihat Error Stack Trace
+            </button>
+          </div>
+
+        </div>
+
+        <!-- OUTPUT -->
+        <div class="response-output" id="response-output" style="display:none;">
+          <div class="response-header">
+            <span id="response-endpoint"></span>
+            <button onclick="document.getElementById('response-output').style.display='none'" class="btn-close-response">✕</button>
+          </div>
+          <pre id="response-data" class="response-pre"></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- APA YANG SALAH / DAMPAK -->
+    <div class="two-col-grid">
+      <section class="lab-section">
+        <h2>❌ Apa yang Salah?</h2>
+        <div class="wrong-box">
+          <ul class="check-list check-red">
+            <li>API mengembalikan <strong>field internal</strong> (internalUserId, isAdmin, debugNote)</li>
+            <li><strong>Debug mode</strong> aktif dan dapat diakses publik</li>
+            <li><strong>Error stack trace</strong> dikirim ke response user</li>
+            <li>Secret key dan config server bocor di response</li>
+            <li>Tidak ada access control pada endpoint internal</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="lab-section">
+        <h2>💥 Dampak</h2>
+        <div class="impact-box">
+          <ul class="check-list check-orange">
+            <li>Attacker lebih mudah melakukan <strong>reconnaissance</strong></li>
+            <li>Attacker mengetahui <strong>struktur aplikasi</strong></li>
+            <li>Data bocor dipakai untuk <strong>IDOR, auth bypass, privilege escalation</strong></li>
+            <li>Secret key bocor memungkinkan <strong>pemalsuan token/sesi</strong></li>
+            <li>Kepercayaan user dapat menurun</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+
+    <!-- CARA MEMPERBAIKI -->
+    <section class="lab-section">
+      <h2>🛠️ Cara Memperbaiki</h2>
+      <div class="fix-box">
+        <ul class="check-list check-green">
+          <li>Matikan <strong>debug mode</strong> di production (<code>NODE_ENV=production</code>)</li>
+          <li>Filter field sensitif sebelum mengirim <strong>response API</strong></li>
+          <li>Jangan tampilkan <strong>stack trace</strong> ke user</li>
+          <li>Jangan simpan <strong>secret di file publik</strong> atau repo git</li>
+          <li>Terapkan <strong>access control</strong> pada endpoint internal</li>
+          <li>Gunakan <strong>error handler global</strong> yang menampilkan pesan umum saja</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- NAVIGASI -->
+    <div class="nav-to-fixed">
+      <a href="/lab/information-disclosure/fixed" class="btn btn-fixed-large" id="btn-goto-fixed-info">
+        ✅ Lihat Versi Aman (Fixed) →
+      </a>
+    </div>
+
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+
+<script>
+async function fetchEndpoint(url, type) {
+  const outputEl = document.getElementById('response-output');
+  const dataEl = document.getElementById('response-data');
+  const endpointEl = document.getElementById('response-endpoint');
+
+  dataEl.textContent = '⏳ Memuat data...';
+  outputEl.style.display = 'block';
+  endpointEl.textContent = 'GET ' + url;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    dataEl.textContent = JSON.stringify(data, null, 2);
+
+    // Highlight field sensitif
+    const sensitiveKeys = ['internalUserId', 'debugNote', 'passwordHash', 'sessionToken',
+      'FAKE_SECRET_KEY', 'JWT_SECRET', 'ADMIN_PASSWORD', 'stack', 'debugKey'];
+    let text = dataEl.textContent;
+    sensitiveKeys.forEach(key => {
+      text = text.replace(new RegExp(`"${key}"`, 'g'), `"⚠️${key}"`);
+    });
+    dataEl.textContent = text;
+
+  } catch (err) {
+    dataEl.textContent = 'Error: ' + err.message;
+  }
+
+  outputEl.scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

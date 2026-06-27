@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="LAB 4: Recon & Hidden Endpoints – Latihan dirsearch, gobuster, dan analisis HTTP headers via Burp Suite." />
+  <title><%= title %> | CyberLAB</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<%- include('partials/navbar') %>
+
+<main class="main-content">
+
+  <div class="page-header" style="background:linear-gradient(135deg,#0d0a1a,#1a1030);border:1px solid #5e35b1;">
+    <div class="page-header-inner">
+      <div class="lab-badge" style="background:rgba(94,53,177,0.2);color:#b39ddb;border:1px solid rgba(94,53,177,0.4);">🕵️ RECON LAB</div>
+      <h1>🔍 LAB 4: Recon & Hidden Endpoints Discovery</h1>
+      <p>Latihan menemukan endpoint tersembunyi menggunakan <strong>dirsearch</strong>, <strong>gobuster</strong>, dan menganalisis HTTP headers via <strong>Burp Suite</strong>.</p>
+    </div>
+  </div>
+
+  <div class="lab-container">
+
+    <!-- KONSEP -->
+    <section class="lab-section">
+      <h2>📖 Konsep Reconnaissance</h2>
+      <div class="concept-box">
+        <p><strong>Reconnaissance (Recon)</strong> adalah tahap pertama dalam penetration testing — mengumpulkan informasi sebanyak mungkin tentang target sebelum melakukan serangan.</p>
+        <p>Pada web application, recon meliputi:</p>
+        <ul>
+          <li><strong>Directory/File Brute-Force</strong> – Menemukan path tersembunyi (dirsearch, gobuster, ffuf)</li>
+          <li><strong>HTTP Header Analysis</strong> – Membaca informasi yang bocor di response headers (Burp Suite)</li>
+          <li><strong>robots.txt Reading</strong> – Mencari daftar path yang sengaja disembunyikan</li>
+          <li><strong>Cookie Analysis</strong> – Memeriksa flag keamanan cookie (HttpOnly, Secure, SameSite)</li>
+          <li><strong>Source Code Review</strong> – Memeriksa HTML source, komentar, JavaScript</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============================================= -->
+    <!-- BAGIAN 1: DIRSEARCH -->
+    <!-- ============================================= -->
+    <section class="lab-section">
+      <h2>🔨 Bagian 1 – Directory Brute-Force dengan dirsearch</h2>
+      <div class="vuln-box">
+        <div class="vuln-label">🔍 Tools: dirsearch / gobuster / ffuf</div>
+
+        <h4 style="margin-bottom:1rem;color:#c9d1d9;">📦 Install dirsearch</h4>
+        <div class="code-block">
+          <div class="code-label">Terminal – Install dirsearch</div>
+          <pre><code># Via pip (Python)
+pip install dirsearch
+
+# Atau clone dari GitHub
+git clone https://github.com/maurosoria/dirsearch.git
+cd dirsearch
+pip install -r requirements.txt</code></pre>
+        </div>
+
+        <h4 style="margin:1.5rem 0 1rem;color:#c9d1d9;">🚀 Perintah dirsearch untuk Lab Ini</h4>
+        <div class="code-block">
+          <div class="code-label">Perintah dirsearch – Basic Scan</div>
+          <pre><code># Scan basic terhadap server lab
+dirsearch -u http://localhost:3000 -e php,html,js,json,txt,sql,zip,env,git,bak
+
+# Dengan wordlist lebih lengkap
+dirsearch -u http://localhost:3000 -w /usr/share/wordlists/dirb/common.txt
+
+# Scan dengan output ke file
+dirsearch -u http://localhost:3000 -e * -o hasil_scan.txt
+
+# Scan lebih agresif (semua extension)
+dirsearch -u http://localhost:3000 -e php,html,js,json,txt,sql,zip,env,git,bak,config,old,backup --timeout=10</code></pre>
+        </div>
+
+        <div class="code-block" style="margin-top:1rem;">
+          <div class="code-label">Alternatif: gobuster</div>
+          <pre><code># gobuster dir mode
+gobuster dir -u http://localhost:3000 -w /usr/share/wordlists/dirb/common.txt -x php,html,txt,json,env
+
+# gobuster dengan output
+gobuster dir -u http://localhost:3000 -w /usr/share/wordlists/dirb/big.txt -o gobuster_output.txt</code></pre>
+        </div>
+
+        <div class="code-block" style="margin-top:1rem;">
+          <div class="code-label">Alternatif: ffuf (lebih cepat)</div>
+          <pre><code># ffuf – fuzzing tool
+ffuf -u http://localhost:3000/FUZZ -w /usr/share/wordlists/dirb/common.txt -mc 200,301,302,403
+
+# Dengan extension
+ffuf -u http://localhost:3000/FUZZ -w /usr/share/wordlists/dirb/common.txt \
+     -e .php,.html,.json,.env,.txt,.sql,.bak,.zip -mc 200,301,302,403</code></pre>
+        </div>
+
+        <h4 style="margin:1.5rem 0 1rem;color:#c9d1d9;">🎯 Endpoint yang Seharusnya Ditemukan</h4>
+        <div class="endpoint-discovery-grid">
+          <% const endpoints = [
+            { path: '/robots.txt',        status: '200', type: 'text/plain', severity: 'medium', note: 'Membocorkan daftar path sensitif' },
+            { path: '/admin',             status: '200', type: 'html',       severity: 'critical', note: 'Admin panel tanpa autentikasi' },
+            { path: '/admin/dashboard',   status: '200', type: 'json',       severity: 'critical', note: 'Dashboard data & credentials' },
+            { path: '/admin/users',       status: '200', type: 'json',       severity: 'critical', note: 'Daftar user + password hash' },
+            { path: '/.env',              status: '200', type: 'text/plain', severity: 'critical', note: 'File .env dengan secret keys' },
+            { path: '/backup',            status: '200', type: 'json',       severity: 'high', note: 'Daftar file backup database' },
+            { path: '/config.json',       status: '200', type: 'json',       severity: 'high', note: 'Konfigurasi app + credentials' },
+            { path: '/api/users',         status: '200', type: 'json',       severity: 'high', note: 'API user list tanpa auth' },
+            { path: '/api/keys',          status: '200', type: 'json',       severity: 'critical', note: 'API keys & webhook secrets' },
+            { path: '/api/v1/debug',      status: '200', type: 'json',       severity: 'high', note: 'Debug info & env variables' },
+            { path: '/.git/config',       status: '200', type: 'text/plain', severity: 'high', note: 'Git config & repo URL' },
+            { path: '/server-status',     status: '200', type: 'json',       severity: 'medium', note: 'Server stats & internal IPs' },
+            { path: '/console',           status: '200', type: 'html',       severity: 'critical', note: 'Debug console terekspos' },
+          ]; %>
+
+          <% endpoints.forEach(function(ep) { %>
+          <div class="discovery-item">
+            <div class="discovery-path">
+              <a href="<%= ep.path %>" target="_blank" class="discovery-link" id="link-<%= ep.path.replace(/\//g,'').replace(/\./g,'') %>"><%= ep.path %></a>
+            </div>
+            <div class="discovery-meta">
+              <span class="disc-status">HTTP <%= ep.status %></span>
+              <span class="disc-type"><%= ep.type %></span>
+              <span class="disc-severity sev-<%= ep.severity %>"><%= ep.severity.toUpperCase() %></span>
+            </div>
+            <div class="discovery-note"><%= ep.note %></div>
+          </div>
+          <% }); %>
+        </div>
+
+        <div class="info-callout callout-orange" style="margin-top:1rem;">
+          <strong>💡 Cara Pakai:</strong> Klik link di atas untuk buka manual, ATAU jalankan dirsearch dan temukan sendiri endpoint mana yang bisa diakses!
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================= -->
+    <!-- BAGIAN 2: BURP SUITE – HTTP HEADER ANALYSIS -->
+    <!-- ============================================= -->
+    <section class="lab-section">
+      <h2>🔧 Bagian 2 – HTTP Header Analysis via Burp Suite</h2>
+      <div class="vuln-box">
+        <div class="vuln-label">🦊 Tools: Burp Suite Community / Professional</div>
+
+        <h4 style="margin-bottom:1rem;color:#c9d1d9;">⚙️ Setup Burp Suite Proxy</h4>
+        <div class="code-block">
+          <div class="code-label">Konfigurasi Burp Proxy</div>
+          <pre><code>1. Buka Burp Suite → Proxy → Options
+2. Set proxy listener: 127.0.0.1:8080
+3. Di browser, set HTTP proxy ke: 127.0.0.1:8080
+   (atau gunakan FoxyProxy extension)
+4. Install Burp CA certificate di browser:
+   → Buka http://burpsuite → Download Certificate
+   → Import ke browser (Trust CA)
+
+# Alternatif: gunakan browser bawaan Burp
+Burp Suite → Proxy → Open Browser</code></pre>
+        </div>
+
+        <h4 style="margin:1.5rem 0 1rem;color:#c9d1d9;">🕵️ Yang Harus Dicari di HTTP Headers</h4>
+        <div class="burp-checklist">
+          <div class="burp-check-item">
+            <div class="check-label vuln-label-inline">⚠️ Response Headers Berbahaya yang Ada di Server Ini:</div>
+            <div class="code-block" style="margin-top:0.5rem;">
+              <div class="code-label">HTTP Response Headers (lihat di Burp → Response → Headers)</div>
+              <pre><code>Server: Apache/2.4.52 (Ubuntu)       ← Bocorkan versi server
+X-Powered-By: PHP/7.4.3               ← Bocorkan teknologi backend
+X-Debug-Token: lab-debug-abc123       ← Debug token internal
+X-Internal-Build: v1.0.0-dev          ← Versi build internal
+X-App-Environment: development        ← Environment bocor
+X-Admin-Panel: /admin                 ← Path admin panel bocor!
+X-DB-Host: localhost:5432             ← Database host bocor
+X-Backup-Path: /backup                ← Path backup bocor
+Set-Cookie: session=student_sess_abc123_dummy; Path=/   ← No HttpOnly!
+Set-Cookie: role=user; Path=/                           ← Sensitive in cookie!
+Set-Cookie: debug=true; Path=/                          ← Debug flag exposed!</code></pre>
+            </div>
+          </div>
+
+          <div class="burp-check-item" style="margin-top:1rem;">
+            <div class="check-label fixed-label-inline">✅ Headers yang Seharusnya Ada (Missing di Server Ini):</div>
+            <div class="code-block" style="margin-top:0.5rem;">
+              <div class="code-label">Security Headers yang Kurang</div>
+              <pre><code>X-Content-Type-Options: nosniff         ← TIDAK ADA → MIME sniffing attack
+X-Frame-Options: DENY                   ← TIDAK ADA → Clickjacking attack
+Content-Security-Policy: default-src   ← TIDAK ADA → XSS attack
+Strict-Transport-Security: max-age=... ← TIDAK ADA → HTTPS downgrade
+Referrer-Policy: no-referrer            ← TIDAK ADA → Info bocor via Referer
+Permissions-Policy: ...                 ← TIDAK ADA → Browser feature abuse</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <h4 style="margin:1.5rem 0 1rem;color:#c9d1d9;">📋 Langkah Latihan Burp Header Analysis</h4>
+        <div class="steps-list">
+          <div class="step-item">
+            <span class="step-num">1</span>
+            <div>
+              <strong>Intercept Request</strong>
+              <p>Aktifkan Intercept di Burp → browse ke <code>http://localhost:3000</code> → lihat response</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <span class="step-num">2</span>
+            <div>
+              <strong>Analisis Response Headers</strong>
+              <p>Di Burp → HTTP History → klik request → tab Response → tab Headers → catat semua header berbahaya</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <span class="step-num">3</span>
+            <div>
+              <strong>Analisis Cookies</strong>
+              <p>Periksa header <code>Set-Cookie</code> → apakah ada flag <code>HttpOnly</code>, <code>Secure</code>, <code>SameSite</code>?</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <span class="step-num">4</span>
+            <div>
+              <strong>Send to Repeater</strong>
+              <p>Klik kanan request → Send to Repeater → modifikasi dan kirim ulang untuk test berbagai skenario</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <span class="step-num">5</span>
+            <div>
+              <strong>Spider / Crawl</strong>
+              <p>Burp → Target → Site map → klik kanan target → Spider this host → temukan endpoint tersembunyi</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================= -->
+    <!-- BAGIAN 3: robots.txt -->
+    <!-- ============================================= -->
+    <section class="lab-section">
+      <h2>🤖 Bagian 3 – robots.txt Analysis</h2>
+      <div class="vuln-box">
+        <div class="vuln-label">⚠️ File: /robots.txt (Terekspos)</div>
+        <p style="color:var(--text-secondary);margin-bottom:1rem;">
+          File <code>robots.txt</code> digunakan untuk memberitahu search engine path mana yang tidak boleh di-index.
+          <strong>Tapi ini justru menjadi daftar path sensitif yang mudah dibaca attacker!</strong>
+        </p>
+
+        <div class="steps-list">
+          <div class="step-item">
+            <span class="step-num">1</span>
+            <div>
+              <strong>Buka robots.txt</strong>
+              <p>Browse ke <a href="/robots.txt" target="_blank" style="color:var(--accent-blue)">/robots.txt</a> dan baca semua path di <code>Disallow:</code></p>
+            </div>
+          </div>
+          <div class="step-item">
+            <span class="step-num">2</span>
+            <div>
+              <strong>Coba setiap path</strong>
+              <p>Setiap path <code>Disallow</code> adalah target potensial → coba akses satu per satu</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <span class="step-num">3</span>
+            <div>
+              <strong>Gunakan Burp Spider dari robots.txt</strong>
+              <p>Burp bisa otomatis crawl berdasarkan robots.txt: Target → Scope → tambahkan domain</p>
+            </div>
+          </div>
+        </div>
+
+        <a href="/robots.txt" target="_blank" class="btn btn-vuln" style="margin-top:1rem;" id="btn-open-robots">
+          🤖 Buka robots.txt →
+        </a>
+      </div>
+    </section>
+
+    <!-- APA YANG SALAH / DAMPAK -->
+    <div class="two-col-grid">
+      <section class="lab-section">
+        <h2>❌ Apa yang Salah?</h2>
+        <div class="wrong-box">
+          <ul class="check-list check-red">
+            <li>Response headers membocorkan <strong>teknologi stack</strong></li>
+            <li>Header <strong>internal debug</strong> terekspos ke publik</li>
+            <li>Cookie tanpa flag <strong>HttpOnly, Secure, SameSite</strong></li>
+            <li>Endpoint admin <strong>tidak dilindungi autentikasi</strong></li>
+            <li>File <code>.env</code> dan <code>config.json</code> bisa diakses publik</li>
+            <li>robots.txt <strong>membocorkan path sensitif</strong></li>
+            <li>Directory listing <strong>backup</strong> terbuka</li>
+            <li>Folder <code>.git</code> terekspos ke internet</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="lab-section">
+        <h2>💥 Dampak</h2>
+        <div class="impact-box">
+          <ul class="check-list check-orange">
+            <li>Attacker tahu <strong>teknologi</strong> yang dipakai → cari CVE spesifik</li>
+            <li>Admin panel ditemukan → <strong>brute force</strong> credentials</li>
+            <li>File <code>.env</code> bocor → <strong>semua secret</strong> diketahui</li>
+            <li>API keys bocor → <strong>impersonate</strong> aplikasi</li>
+            <li>Cookie bisa <strong>dicuri via XSS</strong> (no HttpOnly)</li>
+            <li>Git config bocor → <strong>download full source code</strong></li>
+            <li>Internal IPs dari server-status → <strong>pivot attack</strong></li>
+          </ul>
+        </div>
+      </section>
+    </div>
+
+    <!-- CARA MEMPERBAIKI -->
+    <section class="lab-section">
+      <h2>🛡️ Cara Memperbaiki</h2>
+      <div class="fix-detail-grid">
+
+        <div class="fix-detail-item">
+          <div class="fix-num">1</div>
+          <div>
+            <strong>Hapus/Sembunyikan Response Headers Sensitif</strong>
+            <p>Gunakan middleware helmet.js: <code>app.use(helmet())</code>. Remove <code>X-Powered-By</code>, set <code>Server</code> header ke nilai generik.</p>
+          </div>
+        </div>
+
+        <div class="fix-detail-item">
+          <div class="fix-num">2</div>
+          <div>
+            <strong>Amankan Cookies</strong>
+            <p>Selalu set: <code>HttpOnly; Secure; SameSite=Strict</code>. Jangan simpan data sensitif di cookie nama.</p>
+          </div>
+        </div>
+
+        <div class="fix-detail-item">
+          <div class="fix-num">3</div>
+          <div>
+            <strong>Blokir Akses ke File Sensitif</strong>
+            <p>Konfigurasi web server agar <code>.env</code>, <code>.git/</code>, <code>config.json</code> tidak bisa diakses dari luar.</p>
+          </div>
+        </div>
+
+        <div class="fix-detail-item">
+          <div class="fix-num">4</div>
+          <div>
+            <strong>Lindungi Admin Endpoints</strong>
+            <p>Require strong authentication, session validation, dan IP allowlist untuk semua path <code>/admin/*</code>.</p>
+          </div>
+        </div>
+
+        <div class="fix-detail-item">
+          <div class="fix-num">5</div>
+          <div>
+            <strong>Hati-hati dengan robots.txt</strong>
+            <p>robots.txt bukan mekanisme keamanan! Jangan lista path sensitif di sini — lindungi path tersebut dengan autentikasi.</p>
+          </div>
+        </div>
+
+        <div class="fix-detail-item">
+          <div class="fix-num">6</div>
+          <div>
+            <strong>Tambahkan Security Headers</strong>
+            <p><code>X-Content-Type-Options: nosniff</code>, <code>X-Frame-Options: DENY</code>, <code>Content-Security-Policy</code>, <code>HSTS</code>.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+</body>
+</html>

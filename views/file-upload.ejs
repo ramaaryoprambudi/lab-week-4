@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="LAB 1: File Upload Vulnerability – Simulasi kerentanan upload file tanpa validasi." />
+  <title><%= title %> | CyberLAB</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<%- include('partials/navbar') %>
+
+<main class="main-content">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header vuln-page-header">
+    <div class="page-header-inner">
+      <div class="lab-badge vuln-badge">⚠️ VULNERABLE VERSION</div>
+      <h1>📁 LAB 1: File Upload Vulnerability</h1>
+      <p>Simulasi kerentanan upload file tanpa validasi – Jenis file apapun dapat diunggah.</p>
+    </div>
+  </div>
+
+  <div class="lab-container">
+
+    <!-- KONSEP -->
+    <section class="lab-section">
+      <h2>📖 Konsep</h2>
+      <div class="concept-box">
+        <p><strong>File Upload Vulnerability</strong> terjadi ketika aplikasi menerima file dari pengguna tanpa validasi yang kuat terhadap:</p>
+        <ul>
+          <li>Extension file (misal: <code>.php</code>, <code>.jsp</code>, <code>.exe</code>)</li>
+          <li>MIME type yang dikirim browser</li>
+          <li>Ukuran file (file terlalu besar → denial of service)</li>
+          <li>Isi/konten file yang sebenarnya</li>
+          <li>Lokasi penyimpanan file</li>
+        </ul>
+        <p>Di server dengan konfigurasi yang salah (PHP/JSP/ASP), file berbahaya yang diupload dapat <strong>dieksekusi sebagai kode server</strong> (Web Shell).</p>
+      </div>
+
+      <div class="info-callout callout-orange">
+        <strong>💡 Catatan Simulasi:</strong> Pada lab ini kamu dapat mengupload file <code>.html</code>, <code>.txt</code>, dll. Di server PHP nyata, kamu bisa upload <code>.php</code> yang akan dieksekusi server. Di lab ini kita hanya mensimulasikan efeknya dengan file teks dummy.
+      </div>
+    </section>
+
+    <!-- FORM UPLOAD VULNERABLE -->
+    <section class="lab-section">
+      <h2>🧪 Simulasi Vulnerable</h2>
+      <div class="vuln-box">
+        <div class="vuln-label">⚠️ Endpoint Vulnerable: <code>POST /lab/file-upload/upload</code></div>
+
+        <% if (message) { %>
+          <div class="alert alert-success"><%= message %></div>
+        <% } %>
+        <% if (error) { %>
+          <div class="alert alert-error"><%= error %></div>
+        <% } %>
+
+        <form action="/lab/file-upload/upload" method="POST" enctype="multipart/form-data" class="upload-form" id="upload-form-vuln">
+          <div class="form-group">
+            <label for="file-input">Pilih file untuk diupload:</label>
+            <div class="file-input-wrapper">
+              <input type="file" name="file" id="file-input" class="file-input" />
+              <div class="file-input-display" id="file-display">Belum ada file dipilih...</div>
+            </div>
+            <small class="form-hint text-red">⚠️ Tidak ada batasan jenis file – coba upload file apa saja!</small>
+          </div>
+          <button type="submit" class="btn btn-vuln-submit" id="btn-upload-vuln">📤 Upload File (Vulnerable)</button>
+        </form>
+
+        <!-- Simulasi Fake Webshell -->
+        <div class="webshell-demo">
+          <h4>🎭 Coba: Simulasi Upload "Fake Webshell"</h4>
+          <p>Download file simulasi ini, lalu upload ke form di atas:</p>
+          <a href="/uploads/fake-webshell.html" class="btn btn-sm btn-outline" id="link-fake-webshell" target="_blank">🔗 Lihat Fake Webshell Demo</a>
+          <p class="text-muted"><small>File ini hanya menampilkan teks, bukan malware nyata. Di server PHP/JSP, file .php/.jsp berbahaya bisa dieksekusi.</small></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- LIST UPLOADED FILES -->
+    <% if (files && files.length > 0) { %>
+    <section class="lab-section">
+      <h2>📂 File yang Berhasil Diupload</h2>
+      <div class="vuln-box">
+        <p class="text-red"><strong>⚠️ Perhatian:</strong> Semua file berikut bisa diakses langsung melalui URL publik!</p>
+        <table class="file-table">
+          <thead>
+            <tr>
+              <th>Nama File</th>
+              <th>Ukuran</th>
+              <th>URL Akses</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% files.forEach(function(f) { %>
+            <tr>
+              <td><code><%= f.name %></code></td>
+              <td><%= (f.size / 1024).toFixed(2) %> KB</td>
+              <td><a href="<%= f.url %>" target="_blank" class="file-link"><%= f.url %></a></td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <% } %>
+
+    <!-- APA YANG SALAH -->
+    <div class="two-col-grid">
+      <section class="lab-section">
+        <h2>❌ Apa yang Salah?</h2>
+        <div class="wrong-box">
+          <ul class="check-list check-red">
+            <li>Aplikasi menerima <strong>semua jenis file</strong> tanpa filter</li>
+            <li>File disimpan di folder <strong>public</strong> yang bisa diakses URL</li>
+            <li>File dapat dibuka langsung melalui URL browser</li>
+            <li>Tidak ada validasi <strong>extension</strong> file</li>
+            <li>Tidak ada validasi <strong>MIME type</strong></li>
+            <li>Tidak ada batas <strong>ukuran file</strong></li>
+            <li>Nama file asli dari user digunakan apa adanya</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="lab-section">
+        <h2>💥 Dampak</h2>
+        <div class="impact-box">
+          <ul class="check-list check-orange">
+            <li>Attacker dapat mengunggah <strong>file berbahaya</strong> (webshell)</li>
+            <li>File sensitif atau konfigurasi aplikasi dapat terancam</li>
+            <li>Server dapat menjadi <strong>titik awal serangan</strong> lanjutan</li>
+            <li>Reputasi dan integritas aplikasi dapat terganggu</li>
+            <li>Denial of Service (DoS) melalui file berukuran besar</li>
+            <li>Overwrite file penting jika nama konflik</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+
+    <!-- CARA MEMPERBAIKI -->
+    <section class="lab-section">
+      <h2>🛠️ Cara Memperbaiki</h2>
+      <div class="fix-box">
+        <ul class="check-list check-green">
+          <li>Gunakan <strong>whitelist extension</strong>: hanya .jpg, .jpeg, .png, .pdf</li>
+          <li>Periksa <strong>MIME type</strong> file yang dikirim</li>
+          <li>Validasi <strong>isi/header</strong> file (magic bytes)</li>
+          <li>Batasi <strong>ukuran file</strong> maksimal (misal 1 MB)</li>
+          <li><strong>Rename file</strong> menggunakan UUID/random string</li>
+          <li>Simpan di folder <strong>terpisah di luar public</strong></li>
+          <li>Jangan izinkan <strong>eksekusi script</strong> di folder upload</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- BURP SUITE GUIDE -->
+    <section class="lab-section">
+      <h2>🦊 Cara Menggunakan Burp Suite – MIME Type Bypass</h2>
+      <div class="burp-guide-box">
+        <p style="color:var(--text-secondary);margin-bottom:1rem;">
+          Pada versi fixed, server melakukan validasi MIME type. Namun di versi vulnerable ini,
+          kamu bisa menggunakan Burp Suite untuk <strong>memalsukan Content-Type</strong> saat upload.
+        </p>
+
+        <div class="steps-list">
+          <div class="step-item">
+            <span class="step-num">1</span>
+            <div>
+              <strong>Setup Burp Proxy</strong>
+              <p>Buka Burp Suite → Proxy → Intercept ON. Set browser proxy ke <code>127.0.0.1:8080</code></p>
+            </div>
+          </div>
+          <div class="step-item">
+            <span class="step-num">2</span>
+            <div>
+              <strong>Upload File dari Browser</strong>
+              <p>Pilih file (misal <code>test.html</code>) → klik "Upload File (Vulnerable)" → Burp akan intercept request</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <span class="step-num">3</span>
+            <div>
+              <strong>Lihat Raw HTTP Request di Burp</strong>
+              <p>Di Burp Proxy → Intercept, kamu akan melihat:</p>
+              <div class="code-block" style="margin-top:0.5rem;">
+                <div class="code-label">Raw Multipart Upload Request</div>
+                <pre><code>POST /lab/file-upload/upload HTTP/1.1
+Host: localhost:3000
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="test.html"
+Content-Type: text/html       ← Bisa kamu UBAH di sini!
+
+&lt;html&gt;...isi file...&lt;/html&gt;
+------Boundary--</code></pre>
+              </div>
+            </div>
+          </div>
+          <div class="step-item">
+            <span class="step-num">4</span>
+            <div>
+              <strong>Ubah Content-Type (MIME Bypass)</strong>
+              <p>Edit baris <code>Content-Type: text/html</code> menjadi <code>Content-Type: image/jpeg</code> → klik Forward</p>
+              <p style="color:var(--accent-orange);font-size:0.82rem;">⚠️ Di server yang hanya cek MIME type (bukan isi file), bypass ini berhasil!</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <span class="step-num">5</span>
+            <div>
+              <strong>Ubah Nama File</strong>
+              <p>Coba ubah <code>filename="test.html"</code> menjadi <code>filename="test.php"</code> — di server PHP, ini bisa jadi webshell!</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <span class="step-num">6</span>
+            <div>
+              <strong>Send to Repeater</strong>
+              <p>Klik kanan request → Send to Repeater → modifikasi dan kirim berulang tanpa harus upload ulang lewat browser</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-callout callout-orange" style="margin-top:1rem;">
+          <strong>💡 Tip:</strong> Gunakan Burp Decoder untuk encode/decode payload. Gunakan Burp Scanner untuk otomatis deteksi kerentanan upload.
+        </div>
+      </div>
+    </section>
+
+    <!-- NAVIGASI KE VERSI FIXED -->
+    <div class="nav-to-fixed">
+      <a href="/lab/file-upload/fixed" class="btn btn-fixed-large" id="btn-goto-fixed-upload">
+        ✅ Lihat Versi Aman (Fixed) →
+      </a>
+    </div>
+
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+
+<script>
+  // Show filename on selection
+  document.getElementById('file-input').addEventListener('change', function() {
+    const display = document.getElementById('file-display');
+    display.textContent = this.files[0] ? this.files[0].name + ' (' + (this.files[0].size / 1024).toFixed(2) + ' KB)' : 'Belum ada file dipilih...';
+  });
+</script>
+</body>
+</html>

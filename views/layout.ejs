@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Cyber Security LAB Week 4 – Pembelajaran praktis keamanan web." />
+  <title><%= title %> | CyberLAB</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<%- include('layout', { body: ` ` }) %>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-brand">
+    <span class="nav-icon">🔐</span>
+    <span>CyberLAB <span class="nav-week">Week 4</span></span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="/" class="<%= page === 'home' ? 'active' : '' %>">🏠 Home</a></li>
+    <li class="nav-dropdown">
+      <a href="/lab/file-upload" class="<%= (page === 'file-upload' || page === 'fixed-file-upload') ? 'active' : '' %>">📁 File Upload</a>
+      <ul class="dropdown-menu">
+        <li><a href="/lab/file-upload">⚠️ Vulnerable</a></li>
+        <li><a href="/lab/file-upload/fixed">✅ Fixed</a></li>
+      </ul>
+    </li>
+    <li class="nav-dropdown">
+      <a href="/lab/information-disclosure" class="<%= (page === 'info-disclosure' || page === 'fixed-info-disclosure') ? 'active' : '' %>">🔍 Info Disclosure</a>
+      <ul class="dropdown-menu">
+        <li><a href="/lab/information-disclosure">⚠️ Vulnerable</a></li>
+        <li><a href="/lab/information-disclosure/fixed">✅ Fixed</a></li>
+      </ul>
+    </li>
+    <li class="nav-dropdown">
+      <a href="/lab/race-condition" class="<%= (page === 'race-condition' || page === 'fixed-race-condition') ? 'active' : '' %>">⚡ Race Condition</a>
+      <ul class="dropdown-menu">
+        <li><a href="/lab/race-condition">⚠️ Vulnerable</a></li>
+        <li><a href="/lab/race-condition/fixed">✅ Fixed</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
