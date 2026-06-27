@@ -1,5 +1,5 @@
 # 🔐 Cyber Security LAB – Week 4
-## Advanced Attack & Simulation
+## Advanced Attack & Simulation (PHP Native Version)
 
 > **⚠️ PERINGATAN:** Project ini dibuat **hanya untuk pembelajaran lokal/lab**. Jangan deploy ke internet. Jangan gunakan teknik ini di sistem milik orang lain.
 
@@ -7,15 +7,14 @@
 
 ## 📋 Deskripsi
 
-Project ini adalah aplikasi web edukasi berbasis **Express.js + EJS** yang mensimulasikan 3 kerentanan keamanan web umum:
+Project ini adalah aplikasi web edukasi berbasis **PHP Native** yang mensimulasikan 4 jenis kerentanan keamanan web umum serta cara mitigasinya:
 
-1. **File Upload Vulnerability** – Upload file tanpa validasi
-2. **Information Disclosure** – Kebocoran data sensitif melalui API
-3. **Race Condition** – Eksploitasi celah waktu antara check dan update
+1. **File Upload Vulnerability** – Mengunggah file tanpa validasi (3 tingkatan bypass) hingga versi aman.
+2. **Information Disclosure** – Kebocoran data sensitif melalui respon API, debug, dan stack trace.
+3. **Race Condition** – Eksploitasi celah waktu pemrosesan konkuren pada voucher hadiah.
+4. **Recon & Hidden Endpoints** – Pengintaian directory brute-force menggunakan dirsearch/gobuster dan analisis header HTTP.
 
-Setiap lab memiliki dua versi:
-- **Versi Vulnerable** – sengaja rentan untuk demonstrasi
-- **Versi Fixed/Aman** – implementasi yang benar sebagai solusi
+Setiap lab dirancang secara interaktif menggunakan gaya desain **modern cyber-punk (glassmorphism & neon glow)** yang responsif.
 
 ---
 
@@ -23,183 +22,89 @@ Setiap lab memiliki dua versi:
 
 ```
 cyber-lab-week4/
-├── app.js                          # Entry point Express
-├── package.json
-├── README.md
-├── .env.example
-├── data/
-│   ├── database.json               # JSON Database (auto-dibuat)
-│   └── secure-uploads/            # Folder upload aman (tidak publik)
-├── public/
+├── config.php                      # Bootstrapping & basis URL dinamis
+├── index.php                       # Halaman Utama Dashboard
+├── header.php                      # Partial layout header & navigasi
+├── footer.php                      # Partial layout footer
+├── robots.txt                      # File robots.txt (Simulasi Recon)
+├── config.json                     # File konfigurasi terekspos (Simulasi Recon)
+├── .gitignore                      # Git ignore
+├── admin/                          # Panel admin (Simulasi Recon)
+│   ├── index.php                   # Admin login page (dummy)
+│   ├── dashboard.php               # API dashboard statistik
+│   └── users.php                   # API user list
+├── api/                            # API internal (Simulasi Info Disclosure)
+│   ├── debug.php                   # Debug info
+│   ├── keys.php                    # Webhook API keys
+│   └── users.php                   # User tokens list
+├── data/                           # Folder database JSON & data secure
+│   ├── database.json               # JSON database (auto-created)
+│   ├── secure-uploads/             # Folder unggahan aman (non-publik)
+│   └── secure-upload-log.json      # Log riwayat unggahan aman
+├── public/                         # Aset publik & folder upload rentan
 │   ├── css/
-│   │   └── style.css
-│   └── uploads/                   # Folder upload vulnerable (publik)
-│       └── fake-webshell.html     # Demo file simulasi
-├── views/
-│   ├── partials/
-│   │   ├── navbar.ejs
-│   │   └── footer.ejs
-│   ├── index.ejs                  # Halaman utama
-│   ├── error.ejs                  # Halaman error
-│   ├── file-upload.ejs            # LAB 1 – Vulnerable
-│   ├── fixed-file-upload.ejs      # LAB 1 – Fixed
-│   ├── information-disclosure.ejs # LAB 2 – Vulnerable
-│   ├── fixed-information-disclosure.ejs # LAB 2 – Fixed
-│   ├── race-condition.ejs         # LAB 3 – Vulnerable
-│   └── fixed-race-condition.ejs   # LAB 3 – Fixed
-└── routes/
-    ├── fileUpload.js
-    ├── informationDisclosure.js
-    └── raceCondition.js
+│   │   └── style.css               # Main stylesheet (Cyber-punk style)
+│   └── uploads/                    # Folder upload vulnerable (publik)
+│       └── fake-webshell.html      # Berkas HTML untuk simulasi webshell
+├── file-upload-1.php               # LAB 1 – Level 1: Tanpa Validasi
+├── file-upload-2.php               # LAB 1 – Level 2: Blacklist Filter
+├── file-upload-3.php               # LAB 1 – Level 3: MIME Type Bypass
+├── file-upload-fixed.php           # LAB 1 – Level 4: Versi Aman (Secure)
+├── info-disclosure.php             # LAB 2 – Versi Vulnerable
+├── info-disclosure-fixed.php       # LAB 2 – Versi Aman (Secure)
+├── race-condition.php              # LAB 3 – Versi Vulnerable (usleep delay)
+├── race-condition-fixed.php        # LAB 3 – Versi Aman (flock file lock)
+└── recon.php                       # LAB 4 – Panduan Recon & dirsearch scan
 ```
 
 ---
 
 ## 🚀 Cara Install & Menjalankan
 
-### 1. Install Dependencies
+### 1. Salin ke Web Server Lokal
+Salin atau clone folder project ini ke dalam direktori publik web server lokal Anda:
+- **MAMP**: `/Applications/MAMP/htdocs/`
+- **XAMPP**: `C:\xampp\htdocs\`
+- **Laragon**: `C:\laragon\www\`
 
-```bash
-cd cyber-lab-week4
-npm install
+### 2. Jalankan Apache Web Server
+Aktifkan web server lokal Anda melalui control panel MAMP / XAMPP / Laragon (pastikan modul PHP aktif, disarankan PHP versi 7.4 s.d 8.x).
+
+### 3. Akses di Browser
+Buka browser dan arahkan ke alamat folder project Anda. Karena project menggunakan inisialisasi basis URL dinamis (`config.php`), Anda bebas meletakkannya di subdirektori manapun. Contoh:
 ```
-
-### 2. Konfigurasi Environment (opsional)
-
-```bash
-cp .env.example .env
+http://localhost:8888/labs-week-4/cyber-lab-week4/index.php
 ```
-
-### 3. Jalankan Server
-
-**Mode Development (dengan nodemon):**
-```bash
-npm run dev
-```
-
-**Mode Production:**
-```bash
-npm start
-```
-
-### 4. Akses di Browser
-
-```
-http://localhost:3000
-```
-
----
-
-## 🗺️ Daftar Route
-
-| Route | Deskripsi |
-|---|---|
-| `GET /` | Halaman utama |
-| `GET /lab/file-upload` | LAB 1 – File Upload (Vulnerable) |
-| `POST /lab/file-upload/upload` | Upload endpoint (Vulnerable) |
-| `GET /lab/file-upload/fixed` | LAB 1 – File Upload (Fixed) |
-| `POST /lab/file-upload/fixed/upload` | Upload endpoint (Fixed) |
-| `GET /lab/information-disclosure` | LAB 2 – Info Disclosure (Vulnerable) |
-| `GET /lab/information-disclosure/profile` | API: user data bocor |
-| `GET /lab/information-disclosure/debug` | API: debug/config bocor |
-| `GET /lab/information-disclosure/error` | API: stack trace bocor |
-| `GET /lab/information-disclosure/fixed` | LAB 2 – Info Disclosure (Fixed) |
-| `GET /lab/information-disclosure/fixed/profile` | API: user data aman |
-| `GET /lab/information-disclosure/fixed/debug` | API: debug ditutup (403) |
-| `GET /lab/information-disclosure/fixed/error` | API: error aman |
-| `GET /lab/race-condition` | LAB 3 – Race Condition (Vulnerable) |
-| `POST /lab/race-condition/redeem` | Redeem voucher (Vulnerable) |
-| `POST /lab/race-condition/reset` | Reset data |
-| `GET /lab/race-condition/fixed` | LAB 3 – Race Condition (Fixed) |
-| `POST /lab/race-condition/fixed/redeem` | Redeem voucher (Fixed) |
-| `POST /lab/race-condition/fixed/reset` | Reset data |
 
 ---
 
 ## 🧪 Penjelasan Masing-masing Lab
 
 ### LAB 1: File Upload Vulnerability
-
-**Konsep:** Aplikasi menerima file tanpa validasi extension, MIME type, ukuran, atau isi file.
-
-**Cara Demo Vulnerable:**
-1. Buka `/lab/file-upload`
-2. Upload file apapun (`.html`, `.txt`, `.exe`, dll)
-3. File tersimpan di `public/uploads/` dan bisa diakses via URL
-
-**Yang Diperbaiki di Fixed Version:**
-- Whitelist extension: `.jpg`, `.jpeg`, `.png`, `.pdf`
-- Validasi MIME type: `image/jpeg`, `image/png`, `application/pdf`
-- Batas ukuran: maksimal 1 MB
-- Rename file dengan UUID
-- Simpan di `data/secure-uploads/` (tidak publik)
-
----
+- **Level 1**: Server menerima file apapun tanpa proteksi. Bisa digunakan untuk mengunggah shell `.php` secara langsung.
+- **Level 2**: Server menggunakan filter blacklist sederhana (hanya memblokir `.php` lowercase). Dapat di-bypass dengan manipulasi huruf kapital (`.pHp`) atau ekstensi alternatif (`.phtml`, `.phar`).
+- **Level 3**: Server memvalidasi header parameter `Content-Type` bawaan browser. Dapat di-bypass melalui Burp Suite dengan mengubah header menjadi `image/jpeg`.
+- **Level 4 (Secure)**: Validasi whitelist ketat, validasi tipe MIME asli menggunakan Magic Bytes (`mime_content_type`), pengubahan nama secara acak (UUID), dan penyimpanan di folder non-publik (`/data/secure-uploads/`).
 
 ### LAB 2: Information Disclosure
-
-**Konsep:** Aplikasi membocorkan informasi sensitif melalui API response, debug endpoint, dan error stack trace.
-
-**Cara Demo Vulnerable:**
-1. Buka `/lab/information-disclosure`
-2. Klik tombol "Profile Leak" → lihat field internal (internalUserId, debugNote, dll)
-3. Klik tombol "Debug Leak" → lihat secret key, config server
-4. Klik tombol "Error Stack Trace" → lihat stack trace aplikasi
-
-**Yang Diperbaiki di Fixed Version:**
-- API profile hanya kembalikan `name` dan `email`
-- Debug endpoint ditutup dengan 403 Forbidden
-- Error handler menampilkan pesan umum, detail di server log
-
----
+- Simulasi kebocoran kredensial rahasia, data server internal, key API, dan error stack trace.
+- Versi aman menonaktifkan pelaporan error internal ke publik (`ini_set('display_errors', 0)`), memblokir endpoint debug di luar *development env*, serta menyaring field sensitif dari API response.
 
 ### LAB 3: Race Condition
+- Eksploitasi penggunaan voucher promo bersamaan sebelum status data diperbarui.
+- Versi aman mengimplementasikan locking berbasis berkas (`flock()`) sebagai pengganti mutex di PHP multi-process, validasi ganda, serta pencatatan log unik redemption.
 
-**Konsep:** Voucher sekali pakai bisa diredeem berkali-kali karena pengecekan dan update dilakukan terpisah dengan delay di antaranya.
-
-**Cara Demo Vulnerable:**
-1. Buka `/lab/race-condition`
-2. Klik "Simulasikan 10 Request Bersamaan"
-3. Perhatikan: lebih dari 1 request bisa berhasil → poin bertambah > 100
-
-**Yang Diperbaiki di Fixed Version (3 Teknik):**
-1. **In-Memory Lock:** Flag `isRedeeming = true` mencegah concurrent request
-2. **Double-Check Validation:** Validasi ulang status voucher langsung dari database sebelum data di-update
-3. **Simulated Unique Constraint:** Verifikasi riwayat redemption untuk mencegah klaim ganda per user
+### LAB 4: Recon & Hidden Endpoints
+- Penggunaan alat bantu directory brute-force (`dirsearch`, `gobuster`, `ffuf`) untuk menemukan panel `/admin/` dan file sensitif lainnya.
+- Membaca robots.txt untuk menemukan petunjuk direktori internal yang disembunyikan developer.
 
 ---
 
-## ⚙️ Dependencies
-
-| Package | Versi | Fungsi |
-|---|---|---|
-| express | ^4.19.2 | Web framework |
-| ejs | ^3.1.10 | Template engine |
-| multer | ^1.4.5-lts.1 | File upload middleware |
-| uuid | ^9.0.1 | Generate UUID untuk rename file |
-| dotenv | ^16.4.5 | Environment variables |
-| nodemon | ^3.1.3 | Auto-restart development (devDep) |
-
----
-
-## 🔒 Catatan Keamanan
-
-1. **Project hanya untuk edukasi** – Jangan gunakan di sistem milik orang lain
-2. **Jangan deploy ke internet** – Ini adalah lab lokal
-3. **Jangan gunakan data asli** – Semua data di lab ini adalah dummy/palsu
-4. **Tidak ada malware** – File simulasi hanya teks biasa, tidak ada kode berbahaya
-5. **Tidak ada eksekusi OS command** – Lab tidak menjalankan perintah sistem apapun
-6. **Data dummy** – Token, secret key, dan credential di lab ini tidak valid di mana pun
-
----
-
-## 📚 Referensi Pembelajaran
-
-- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-- [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html)
-- [OWASP Information Exposure](https://owasp.org/www-community/vulnerabilities/Information_exposure_through_query_strings_in_url)
-- [OWASP Race Condition](https://owasp.org/www-community/vulnerabilities/Race_Condition)
-- [PortSwigger Web Security Academy](https://portswigger.net/web-security)
+## ⚙️ Kebutuhan Sistem
+- PHP Interpreter (v7.4 - v8.x)
+- Apache Web Server (MAMP / XAMPP / Laragon)
+- Web Browser modern
+- (Opsional untuk latihan) Burp Suite & Python (untuk dirsearch)
 
 ---
 
