@@ -9,10 +9,12 @@
   <ul class="nav-links">
     <li><a href="/" class="<%= locals.page === 'home' ? 'active' : '' %>">🏠 Home</a></li>
     <li class="nav-dropdown">
-      <a href="/lab/file-upload" class="<%= (locals.page === 'file-upload' || locals.page === 'fixed-file-upload') ? 'active' : '' %>">📁 File Upload</a>
+      <a href="/lab/file-upload/1" class="<%= (locals.page && locals.page.startsWith('file-upload')) ? 'active' : '' %>">📁 File Upload</a>
       <ul class="dropdown-menu">
-        <li><a href="/lab/file-upload">⚠️ Vulnerable</a></li>
-        <li><a href="/lab/file-upload/fixed">✅ Fixed</a></li>
+        <li><a href="/lab/file-upload/1">Level 1: No Validation</a></li>
+        <li><a href="/lab/file-upload/2">Level 2: Blacklist Filter</a></li>
+        <li><a href="/lab/file-upload/3">Level 3: Extension Whitelist</a></li>
+        <li><a href="/lab/file-upload/fixed">Level 4: Secure Version</a></li>
       </ul>
     </li>
     <li class="nav-dropdown">

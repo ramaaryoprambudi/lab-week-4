@@ -7,158 +7,248 @@ const { v4: uuidv4 } = require('uuid');
 
 const isVercel = process.env.VERCEL === '1' || !!process.env.VERCEL;
 
+// Multer Storage Helper
+const getStorage = (isFixed) => {
+  return multer.diskStorage({
+    destination: (req, file, cb) => {
+      const dest = isVercel
+        ? (isFixed ? '/tmp/secure-uploads' : '/tmp/uploads')
+        : (isFixed ? path.join(__dirname, '..', 'data', 'secure-uploads') : path.join(__dirname, '..', 'public', 'uploads'));
+      
+      if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+      cb(null, dest);
+    },
+    filename: (req, file, cb) => {
+      if (isFixed) {
+        const ext = path.extname(file.originalname).toLowerCase();
+        cb(null, `${uuidv4()}${ext}`);
+      } else {
+        // Rentan: Gunakan nama asli dari pengguna
+        cb(null, file.originalname);
+      }
+    }
+  });
+};
+
 // =============================================
-// VULNERABLE VERSION - Tidak ada validasi
+// KONFIGURASI MULTER UNTUK TIAP LAB
 // =============================================
-const vulnerableStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dest = isVercel ? '/tmp/uploads' : path.join(__dirname, '..', 'public', 'uploads');
-    if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
-    cb(null, dest);
-  },
-  filename: (req, file, cb) => {
-    // ⚠️ VULNERABLE: Pakai nama asli file dari user
-    cb(null, file.originalname);
+
+// LAB 1: Tanpa Validasi Apapun
+const uploadLab1 = multer({ storage: getStorage(false) });
+
+// LAB 2: Blacklist Ekstensi Lemah (Hanya blokir ".php" literal lowercase)
+const blacklistFilter = (req, file, cb) => {
+  const filename = file.originalname;
+  if (filename.endsWith('.php')) {
+    return cb(new Error('Unggah ditolak: File .php diblokir oleh sistem blacklist!'), false);
   }
+  cb(null, true);
+};
+const uploadLab2 = multer({
+  storage: getStorage(false),
+  fileFilter: blacklistFilter
 });
 
-// ⚠️ VULNERABLE: Tidak ada fileFilter, tidak ada limit ukuran
-const vulnerableUpload = multer({ storage: vulnerableStorage });
+// LAB 3: Validasi Ekstensi dengan Whitelist, tanpa mencocokkan MIME type yang sesungguhnya
+// Memvalidasi Content-Type header dari request tanpa validasi ekstensi sesungguhnya,
+// ATAU sebaliknya. Di sini kita memvalidasi ekstensi harus (.jpg, .jpeg, .png)
+// tetapi membiarkan request lolos jika MIME type di header dipalsukan.
+const weakExtensionMimeFilter = (req, file, cb) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  const allowedExts = ['.jpg', '.jpeg', '.png'];
+  
+  if (!allowedExts.includes(ext)) {
+    return cb(new Error('Unggah ditolak: Hanya menerima ekstensi gambar (.jpg, .jpeg, .png)!'), false);
+  }
+  cb(null, true);
+};
+const uploadLab3 = multer({
+  storage: getStorage(false),
+  fileFilter: weakExtensionMimeFilter
+});
 
-// =============================================
-// FIXED VERSION - Dengan validasi lengkap
-// =============================================
+// FIXED VERSION: Validasi Lengkap (Whitelist Ext + Whitelist MIME + Size Limit)
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.pdf'];
 const ALLOWED_MIMETYPES = ['image/jpeg', 'image/png', 'application/pdf'];
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1 MB
-
-const fixedStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dest = isVercel ? '/tmp/secure-uploads' : path.join(__dirname, '..', 'data', 'secure-uploads');
-    if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
-    cb(null, dest);
-  },
-  filename: (req, file, cb) => {
-    // ✅ FIXED: Rename dengan UUID, tidak memakai nama asli
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `${uuidv4()}${ext}`);
-  }
-});
 
 const fixedFileFilter = (req, file, cb) => {
   const ext = path.extname(file.originalname).toLowerCase();
   const mimeType = file.mimetype;
 
-  // ✅ FIXED: Cek extension whitelist
   if (!ALLOWED_EXTENSIONS.includes(ext)) {
     return cb(new Error(`Extension tidak diizinkan. Hanya: ${ALLOWED_EXTENSIONS.join(', ')}`), false);
   }
-
-  // ✅ FIXED: Cek MIME type whitelist
   if (!ALLOWED_MIMETYPES.includes(mimeType)) {
     return cb(new Error(`MIME type tidak diizinkan: ${mimeType}`), false);
   }
-
   cb(null, true);
 };
 
-// ✅ FIXED: Ada limit ukuran file
-const fixedUpload = multer({
-  storage: fixedStorage,
+const uploadFixed = multer({
+  storage: getStorage(true),
   fileFilter: fixedFileFilter,
   limits: { fileSize: MAX_FILE_SIZE }
 });
 
-// --- Metadata file log (in-memory untuk simplicity) ---
-let uploadedFilesLog = [];
+// Log metadata in-memory
 let fixedUploadedFilesLog = [];
 
-// =============================================
-// ROUTES - VULNERABLE
-// =============================================
-
-// GET /lab/file-upload
-router.get('/', (req, res) => {
-  // Baca file dari folder uploads
+// Helper untuk membaca file uploads
+function getUploadedFiles() {
   const uploadsDir = isVercel ? '/tmp/uploads' : path.join(__dirname, '..', 'public', 'uploads');
   if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-  let files = [];
-  if (fs.existsSync(uploadsDir)) {
-    files = fs.readdirSync(uploadsDir).map(name => ({
-      name,
-      url: `/uploads/${name}`,
-      size: fs.statSync(path.join(uploadsDir, name)).size
-    }));
-  }
+  return fs.readdirSync(uploadsDir).map(name => ({
+    name,
+    url: `/uploads/${name}`,
+    size: fs.statSync(path.join(uploadsDir, name)).size
+  }));
+}
 
-  res.render('file-upload', {
-    title: 'LAB 1: File Upload Vulnerability',
-    page: 'file-upload',
-    files,
+// Redirect base path ke Lab 1
+router.get('/', (req, res) => {
+  res.redirect('/lab/file-upload/1');
+});
+
+// =============================================
+// ROUTES - LAB 1 (Tanpa Validasi)
+// =============================================
+router.get('/1', (req, res) => {
+  res.render('file-upload-1', {
+    title: 'Lab 1: Tanpa Validasi',
+    page: 'file-upload-1',
+    files: getUploadedFiles(),
     message: null,
     error: null
   });
 });
 
-// POST /lab/file-upload/upload
-router.post('/upload', (req, res) => {
-  vulnerableUpload.single('file')(req, res, (err) => {
-    const uploadsDir = isVercel ? '/tmp/uploads' : path.join(__dirname, '..', 'public', 'uploads');
-    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-    let files = [];
-    if (fs.existsSync(uploadsDir)) {
-      files = fs.readdirSync(uploadsDir).map(name => ({
-        name,
-        url: `/uploads/${name}`,
-        size: fs.statSync(path.join(uploadsDir, name)).size
-      }));
-    }
-
+router.post('/1/upload', (req, res) => {
+  uploadLab1.single('file')(req, res, (err) => {
+    const files = getUploadedFiles();
     if (err) {
-      return res.render('file-upload', {
-        title: 'LAB 1: File Upload Vulnerability',
-        page: 'file-upload',
+      return res.render('file-upload-1', {
+        title: 'Lab 1: Tanpa Validasi',
+        page: 'file-upload-1',
         files,
         message: null,
-        error: `Upload gagal: ${err.message}`
+        error: `Unggah gagal: ${err.message}`
       });
     }
-
     if (!req.file) {
-      return res.render('file-upload', {
-        title: 'LAB 1: File Upload Vulnerability',
-        page: 'file-upload',
+      return res.render('file-upload-1', {
+        title: 'Lab 1: Tanpa Validasi',
+        page: 'file-upload-1',
         files,
         message: null,
-        error: 'Tidak ada file yang dipilih.'
+        error: 'Pilih file terlebih dahulu!'
       });
     }
-
-    // Refetch files after upload
-    files = fs.readdirSync(uploadsDir).map(name => ({
-      name,
-      url: `/uploads/${name}`,
-      size: fs.statSync(path.join(uploadsDir, name)).size
-    }));
-
-    res.render('file-upload', {
-      title: 'LAB 1: File Upload Vulnerability',
-      page: 'file-upload',
-      files,
-      message: `✅ File berhasil diupload: ${req.file.originalname} → Akses: /uploads/${req.file.filename}`,
+    res.render('file-upload-1', {
+      title: 'Lab 1: Tanpa Validasi',
+      page: 'file-upload-1',
+      files: getUploadedFiles(),
+      message: `✅ File berhasil diunggah tanpa restriksi: ${req.file.originalname}`,
       error: null
     });
   });
 });
 
 // =============================================
-// ROUTES - FIXED
+// ROUTES - LAB 2 (Blacklist Ekstensi)
 // =============================================
+router.get('/2', (req, res) => {
+  res.render('file-upload-2', {
+    title: 'Lab 2: Filter Blacklist Ekstensi',
+    page: 'file-upload-2',
+    files: getUploadedFiles(),
+    message: null,
+    error: null
+  });
+});
 
-// GET /lab/file-upload/fixed
+router.post('/2/upload', (req, res) => {
+  uploadLab2.single('file')(req, res, (err) => {
+    const files = getUploadedFiles();
+    if (err) {
+      return res.render('file-upload-2', {
+        title: 'Lab 2: Filter Blacklist Ekstensi',
+        page: 'file-upload-2',
+        files,
+        message: null,
+        error: `Unggah ditolak: ${err.message}`
+      });
+    }
+    if (!req.file) {
+      return res.render('file-upload-2', {
+        title: 'Lab 2: Filter Blacklist Ekstensi',
+        page: 'file-upload-2',
+        files,
+        message: null,
+        error: 'Pilih file terlebih dahulu!'
+      });
+    }
+    res.render('file-upload-2', {
+      title: 'Lab 2: Filter Blacklist Ekstensi',
+      page: 'file-upload-2',
+      files: getUploadedFiles(),
+      message: `✅ File lolos filter blacklist: ${req.file.originalname}`,
+      error: null
+    });
+  });
+});
+
+// =============================================
+// ROUTES - LAB 3 (MIME Type / Content-Type Bypass)
+// =============================================
+router.get('/3', (req, res) => {
+  res.render('file-upload-3', {
+    title: 'Lab 3: Bypass Validasi Ekstensi Gambar',
+    page: 'file-upload-3',
+    files: getUploadedFiles(),
+    message: null,
+    error: null
+  });
+});
+
+router.post('/3/upload', (req, res) => {
+  uploadLab3.single('file')(req, res, (err) => {
+    const files = getUploadedFiles();
+    if (err) {
+      return res.render('file-upload-3', {
+        title: 'Lab 3: Bypass Validasi Ekstensi Gambar',
+        page: 'file-upload-3',
+        files,
+        message: null,
+        error: `Unggah ditolak: ${err.message}`
+      });
+    }
+    if (!req.file) {
+      return res.render('file-upload-3', {
+        title: 'Lab 3: Bypass Validasi Ekstensi Gambar',
+        page: 'file-upload-3',
+        files,
+        message: null,
+        error: 'Pilih file terlebih dahulu!'
+      });
+    }
+    res.render('file-upload-3', {
+      title: 'Lab 3: Bypass Validasi Ekstensi Gambar',
+      page: 'file-upload-3',
+      files: getUploadedFiles(),
+      message: `✅ File berhasil diunggah (Ekstensi Gambar Terpenuhi): ${req.file.originalname}`,
+      error: null
+    });
+  });
+});
+
+// =============================================
+// ROUTES - FIXED (Versi Aman)
+// =============================================
 router.get('/fixed', (req, res) => {
   res.render('fixed-file-upload', {
-    title: 'LAB 1 (Fixed): File Upload – Versi Aman',
+    title: 'File Upload – Versi Aman (Fixed)',
     page: 'fixed-file-upload',
     files: fixedUploadedFilesLog,
     message: null,
@@ -166,34 +256,31 @@ router.get('/fixed', (req, res) => {
   });
 });
 
-// POST /lab/file-upload/fixed/upload
 router.post('/fixed/upload', (req, res) => {
-  fixedUpload.single('file')(req, res, (err) => {
+  uploadFixed.single('file')(req, res, (err) => {
     if (err) {
       let errMsg = err.message;
       if (err.code === 'LIMIT_FILE_SIZE') {
-        errMsg = `Ukuran file melebihi batas maksimal (1 MB).`;
+        errMsg = 'Ukuran file melebihi batas maksimal (1 MB).';
       }
       return res.render('fixed-file-upload', {
-        title: 'LAB 1 (Fixed): File Upload – Versi Aman',
+        title: 'File Upload – Versi Aman (Fixed)',
         page: 'fixed-file-upload',
         files: fixedUploadedFilesLog,
         message: null,
         error: `❌ Upload ditolak: ${errMsg}`
       });
     }
-
     if (!req.file) {
       return res.render('fixed-file-upload', {
-        title: 'LAB 1 (Fixed): File Upload – Versi Aman',
+        title: 'File Upload – Versi Aman (Fixed)',
         page: 'fixed-file-upload',
         files: fixedUploadedFilesLog,
         message: null,
-        error: 'Tidak ada file yang dipilih.'
+        error: 'Pilih file terlebih dahulu!'
       });
     }
 
-    // Simpan metadata
     const meta = {
       originalName: req.file.originalname,
       savedAs: req.file.filename,
@@ -204,7 +291,7 @@ router.post('/fixed/upload', (req, res) => {
     fixedUploadedFilesLog.unshift(meta);
 
     res.render('fixed-file-upload', {
-      title: 'LAB 1 (Fixed): File Upload – Versi Aman',
+      title: 'File Upload – Versi Aman (Fixed)',
       page: 'fixed-file-upload',
       files: fixedUploadedFilesLog,
       message: `✅ File diterima dan disimpan dengan aman. Nama asli: "${req.file.originalname}" → Disimpan sebagai: "${req.file.filename}"`,

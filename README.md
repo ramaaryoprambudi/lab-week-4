@@ -28,7 +28,7 @@ cyber-lab-week4/
 ├── README.md
 ├── .env.example
 ├── data/
-│   ├── database.sqlite             # SQLite (auto-dibuat)
+│   ├── database.json               # JSON Database (auto-dibuat)
 │   └── secure-uploads/            # Folder upload aman (tidak publik)
 ├── public/
 │   ├── css/
@@ -164,8 +164,8 @@ http://localhost:3000
 
 **Yang Diperbaiki di Fixed Version (3 Teknik):**
 1. **In-Memory Lock:** Flag `isRedeeming = true` mencegah concurrent request
-2. **Transaksi SQLite:** Pengecekan + update dalam satu transaksi atomik
-3. **Unique Constraint:** Tabel `redemptions` dengan UNIQUE constraint mencegah duplikasi di level DB
+2. **Double-Check Validation:** Validasi ulang status voucher langsung dari database sebelum data di-update
+3. **Simulated Unique Constraint:** Verifikasi riwayat redemption untuk mencegah klaim ganda per user
 
 ---
 
@@ -176,7 +176,6 @@ http://localhost:3000
 | express | ^4.19.2 | Web framework |
 | ejs | ^3.1.10 | Template engine |
 | multer | ^1.4.5-lts.1 | File upload middleware |
-| better-sqlite3 | ^9.4.3 | Database SQLite |
 | uuid | ^9.0.1 | Generate UUID untuk rename file |
 | dotenv | ^16.4.5 | Environment variables |
 | nodemon | ^3.1.3 | Auto-restart development (devDep) |

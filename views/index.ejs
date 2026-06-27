@@ -42,16 +42,20 @@
         </div>
         <div class="lab-card-body">
           <h3>File Upload Vulnerability</h3>
-          <p>Aplikasi menerima file tanpa validasi extension, MIME type, atau ukuran — memungkinkan upload file berbahaya.</p>
+          <p>Uji coba 3 tingkatan filter unggahan file dari tingkat tanpa proteksi, bypass blacklist, hingga bypass validasi MIME tipe header.</p>
           <ul class="lab-topics">
-            <li>Validasi extension &amp; MIME type</li>
-            <li>Whitelist vs Blacklist</li>
-            <li>Rename file dengan UUID</li>
-            <li>Folder upload terpisah</li>
+            <li>Level 1: Tanpa validasi apapun</li>
+            <li>Level 2: Blacklist ekstensi (.pHp, .phtml)</li>
+            <li>Level 3: Whitelist & Content-Type bypass</li>
+            <li>Level 4: Whitelist komprehensif & UUID rename</li>
           </ul>
-          <div class="lab-buttons">
-            <a href="/lab/file-upload" class="btn btn-vuln" id="btn-lab1-vuln">⚠️ Vulnerable</a>
-            <a href="/lab/file-upload/fixed" class="btn btn-fixed" id="btn-lab1-fixed">✅ Fixed</a>
+          <div class="lab-buttons" style="display:flex; flex-direction:column; gap:0.5rem; width:100%;">
+            <div style="display:flex; gap:0.5rem; width:100%;">
+              <a href="/lab/file-upload/1" class="btn btn-vuln" style="flex:1; text-align:center; padding:0.4rem 0.5rem; font-size:0.75rem;">Level 1</a>
+              <a href="/lab/file-upload/2" class="btn btn-vuln" style="flex:1; text-align:center; padding:0.4rem 0.5rem; font-size:0.75rem;">Level 2</a>
+              <a href="/lab/file-upload/3" class="btn btn-vuln" style="flex:1; text-align:center; padding:0.4rem 0.5rem; font-size:0.75rem;">Level 3</a>
+            </div>
+            <a href="/lab/file-upload/fixed" class="btn btn-fixed" style="width:100%; text-align:center;">✅ Level 4 (Secure)</a>
           </div>
         </div>
       </div>

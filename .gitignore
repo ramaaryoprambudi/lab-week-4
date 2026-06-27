@@ -1,4 +1,7 @@
 node_modules/
 .env
 data/*.sqlite
+data/*.json
+public/uploads/*
+!public/uploads/fake-webshell.html
 .DS_Store
